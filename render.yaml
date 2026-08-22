@@ -2,8 +2,10 @@ services:
   - type: web
     name: exam-integrity-server
     runtime: node
-    buildCommand: "cd server && npm install && npm run build"
-    startCommand: "cd server && npm start"
+    instanceType: free
+    rootDir: server
+    buildCommand: npm install && npm run build
+    startCommand: npm start
     envVars:
       - key: DATABASE_URL
         value: dummy-value-will-override-in-ui
@@ -15,5 +17,7 @@ services:
   - type: web
     name: exam-integrity-client
     runtime: node
-    buildCommand: "cd client && npm install && npm run build"
-    startCommand: "cd client && npm run start"
+    instanceType: free
+    rootDir: client
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
