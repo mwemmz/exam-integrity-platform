@@ -1,0 +1,22 @@
+services:
+  # Backend Server
+  - type: web
+    name: exam-integrity-server
+    runtime: node
+    buildCommand: "cd server && npm install && npm run build"
+    startCommand: "cd server && npm start"
+    envVars:
+      - key: DATABASE_URL
+        fromSecret:
+          name: neon-database-url
+      - key: JWT_SECRET
+        fromSecret:
+          name: jwt-secret
+      - key: NODE_ENV
+        value: production
+
+  # Frontend Client
+  - type: static
+    name: exam-integrity-client
+    buildCommand: "cd client && npm install && npm run build"
+    staticPublishPath: "client/dist"
