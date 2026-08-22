@@ -8,9 +8,9 @@ services:
     startCommand: npm start
     envVars:
       - key: DATABASE_URL
-        value: dummy-value-will-override-in-ui
+        generateValue: true
       - key: JWT_SECRET
-        value: dummy-value-will-override-in-ui
+        generateValue: true
       - key: NODE_ENV
         value: production
 
