@@ -38,7 +38,14 @@ router.post('/login', async (req, res) => {
         res.json({ token });
     } catch (error) {
         console.error('LOGIN ERROR:', error);
-        res.status(500).json({ error: 'Login failed', debug: String((error as Error)?.message || error) });
+        const e = error as any;
+        const parts: string[] = [];
+        if (Array.isArray(e?.errors)) {
+            for (const x of e.errors) parts.push(`${x?.code || ''} ${x?.address || ''}:${x?.port || ''} ${x?.message || ''}`.trim());
+        }
+        if (e?.code) parts.push(`code=${e.code}`);
+        if (e?.message) parts.push(e.message);
+        res.status(500).json({ error: 'Login failed', debug: parts.join(' | ') || String(error) });
     }
 });
 
