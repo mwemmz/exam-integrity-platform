@@ -15,8 +15,8 @@ services:
       - key: NODE_ENV
         value: production
 
-# Frontend Client
-static:
-  - name: exam-integrity-client
+  # Frontend Client
+  - type: static
+    name: exam-integrity-client
     buildCommand: "cd client && npm install && npm run build"
     staticPublishPath: "client/dist"
