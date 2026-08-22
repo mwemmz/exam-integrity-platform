@@ -1,9 +1,9 @@
-import { Router, Request, Response } from 'express';
-import { Pool } from 'pg';
+﻿import { Router, Request, Response } from 'express';
+import { pool } from '../../db';
+
 import { authenticate } from '../../middleware/auth';
 
 const router = Router();
-const pool = new Pool();
 
 router.post('/:examId/start', authenticate, async (req: any, res: Response) => {
     try {

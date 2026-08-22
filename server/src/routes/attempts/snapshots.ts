@@ -1,11 +1,11 @@
-import { Router } from 'express';
-import { Pool } from 'pg';
+﻿import { Router } from 'express';
+import { pool } from '../../db';
+
 import { authenticate } from '../../middleware/auth';
 import fs from 'fs';
 import path from 'path';
 
 const router = Router();
-const pool = new Pool();
 
 // Upload snapshot
 router.post('/:attemptId/snapshot', authenticate, async (req: any, res) => {
