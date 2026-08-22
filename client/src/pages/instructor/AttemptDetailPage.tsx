@@ -139,8 +139,10 @@ export default function AttemptDetailPage() {
                                 </pre>
                                 <div className="flex items-end gap-2">
                                     <div>
-                                        <label className="block text-xs text-slate-500 mb-1">Score (max {a.points})</label>
+                                        <label htmlFor={`score-${a.question_id}`} className="block text-xs text-slate-500 mb-1">Score (max {a.points})</label>
                                         <input
+                                            id={`score-${a.question_id}`}
+                                            name={`score-${a.question_id}`}
                                             type="number"
                                             min={0}
                                             max={a.points}
@@ -150,8 +152,10 @@ export default function AttemptDetailPage() {
                                         />
                                     </div>
                                     <div className="flex-1">
-                                        <label className="block text-xs text-slate-500 mb-1">Feedback</label>
+                                        <label htmlFor={`feedback-${a.question_id}`} className="block text-xs text-slate-500 mb-1">Feedback</label>
                                         <textarea
+                                            id={`feedback-${a.question_id}`}
+                                            name={`feedback-${a.question_id}`}
                                             rows={2}
                                             value={grades[a.question_id]?.feedback ?? ''}
                                             onChange={e => setGrades(g => ({ ...g, [a.question_id]: { ...g[a.question_id], feedback: e.target.value } }))}

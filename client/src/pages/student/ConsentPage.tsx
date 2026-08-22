@@ -60,7 +60,7 @@ export default function ConsentPage() {
                     <li><strong>Paste blocking:</strong> pasting and right-click are disabled in answer fields.</li>
                     <li>
                         <label className="inline-flex items-start gap-2 cursor-pointer mt-1">
-                            <input type="checkbox" checked={!!webcamOk} onChange={e => setWebcamOk(e.target.checked)} className="mt-0.5" />
+                            <input id="webcam-consent" name="webcamConsent" type="checkbox" checked={!!webcamOk} onChange={e => setWebcamOk(e.target.checked)} className="mt-0.5" />
                             <span>
                                 <strong>Periodic webcam snapshots (optional):</strong> allow camera access and a still photo will be taken roughly every 60 seconds during the exam. Your instructor can view these afterwards.
                                 {webcamOk === false && <span className="block text-xs text-amber-600 mt-0.5">Camera was not granted — you can continue without snapshots.</span>}

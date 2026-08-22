@@ -46,25 +46,25 @@ export default function LoginPage({ onAuthed }: { onAuthed: () => void }) {
                 <form onSubmit={submit} className="space-y-4">
                     {mode === 'register' && (
                         <div>
-                            <label className="block text-sm font-medium mb-1">Full name</label>
-                            <input value={name} onChange={e => setName(e.target.value)} required
+                            <label htmlFor="reg-name" className="block text-sm font-medium mb-1">Full name</label>
+                            <input id="reg-name" name="name" autoComplete="name" value={name} onChange={e => setName(e.target.value)} required
                                 className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
                         </div>
                     )}
                     <div>
-                        <label className="block text-sm font-medium mb-1">Email</label>
-                        <input type="email" value={email} onChange={e => setEmail(e.target.value)} required
+                        <label htmlFor="email" className="block text-sm font-medium mb-1">Email</label>
+                        <input id="email" name="email" type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} required
                             className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium mb-1">Password</label>
-                        <input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={6}
+                        <label htmlFor="password" className="block text-sm font-medium mb-1">Password</label>
+                        <input id="password" name="password" type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={e => setPassword(e.target.value)} required minLength={6}
                             className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
                     </div>
                     {mode === 'register' && (
                         <div>
-                            <label className="block text-sm font-medium mb-1">Role</label>
-                            <select value={role} onChange={e => setRole(e.target.value)}
+                            <label htmlFor="role" className="block text-sm font-medium mb-1">Role</label>
+                            <select id="role" name="role" value={role} onChange={e => setRole(e.target.value)}
                                 className="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white">
                                 <option value="student">Student</option>
                                 <option value="instructor">Instructor</option>

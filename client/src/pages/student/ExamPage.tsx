@@ -290,6 +290,8 @@ export default function ExamPage() {
                                     <label key={idx} className="flex items-center gap-2 text-sm cursor-pointer hover:text-indigo-700">
                                         <input
                                             type="checkbox"
+                                            name={`q${q.id}`}
+                                            value={idx}
                                             checked={selectedFor(q.id).includes(idx)}
                                             onChange={() => toggleMcq(q.id, idx)}
                                         />
@@ -302,6 +304,8 @@ export default function ExamPage() {
 
                         {(q.type === 'essay' || q.type === 'practical') && (
                             <textarea
+                                name={`q${q.id}`}
+                                aria-label={`Answer to question ${i + 1}`}
                                 value={answers[q.id] || ''}
                                 onChange={e => updateAnswer(q.id, e.target.value)}
                                 onPaste={e => { e.preventDefault(); void logEvent('paste_blocked', { questionId: q.id }); }}

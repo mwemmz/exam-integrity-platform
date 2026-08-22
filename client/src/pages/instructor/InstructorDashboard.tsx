@@ -121,9 +121,9 @@ export default function InstructorDashboard() {
                 <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-4">
                     <h2 className="font-semibold">Create Exam</h2>
                     <div className="grid grid-cols-3 gap-3">
-                        <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Exam title" className="col-span-2 border border-slate-300 rounded-lg p-2 text-sm" />
-                        <input value={timeLimit} onChange={e => setTimeLimit(e.target.value)} type="number" min="1" placeholder="Time limit (min)" className="border border-slate-300 rounded-lg p-2 text-sm" />
-                        <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Instructions / description" rows={2} className="col-span-3 border border-slate-300 rounded-lg p-2 text-sm" />
+                        <input id="exam-title" name="title" aria-label="Exam title" value={title} onChange={e => setTitle(e.target.value)} placeholder="Exam title" className="col-span-2 border border-slate-300 rounded-lg p-2 text-sm" />
+                        <input id="exam-time-limit" name="timeLimitMinutes" type="number" min="1" aria-label="Time limit in minutes" value={timeLimit} onChange={e => setTimeLimit(e.target.value)} placeholder="Time limit (min)" className="border border-slate-300 rounded-lg p-2 text-sm" />
+                        <textarea id="exam-description" name="description" aria-label="Exam description" value={description} onChange={e => setDescription(e.target.value)} placeholder="Instructions / description" rows={2} className="col-span-3 border border-slate-300 rounded-lg p-2 text-sm" />
                     </div>
 
                     <div className="space-y-3">
@@ -133,20 +133,20 @@ export default function InstructorDashboard() {
                                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${q.type === 'mcq' ? 'bg-blue-100 text-blue-700' : q.type === 'essay' ? 'bg-purple-100 text-purple-700' : 'bg-orange-100 text-orange-700'}`}>{q.type}</span>
                                     <span className="text-xs text-slate-400">Question {i + 1}</span>
                                     <div className="ml-auto flex items-center gap-2">
-                                        <label className="text-xs text-slate-500">Points</label>
-                                        <input type="number" min="1" value={q.points} onChange={e => updateQ(i, { points: Number(e.target.value) || 1 })} className="w-16 border border-slate-300 rounded p-1 text-xs" />
+                                        <label htmlFor={`q-${i}-points`} className="text-xs text-slate-500">Points</label>
+                                        <input id={`q-${i}-points`} name={`q-${i}-points`} type="number" min="1" aria-label={`Points for question ${i + 1}`} value={q.points} onChange={e => updateQ(i, { points: Number(e.target.value) || 1 })} className="w-16 border border-slate-300 rounded p-1 text-xs" />
                                         <button onClick={() => setQuestions(qs => qs.filter((_, j) => j !== i))} className="text-red-500 hover:text-red-700 text-xs font-medium">Remove</button>
                                     </div>
                                 </div>
-                                <input value={q.prompt} onChange={e => updateQ(i, { prompt: e.target.value })} placeholder={`Question ${i + 1} prompt`} className="w-full border border-slate-300 rounded p-2 text-sm" />
+                                <input id={`q-${i}-prompt`} name={`q-${i}-prompt`} aria-label={`Question ${i + 1} prompt`} value={q.prompt} onChange={e => updateQ(i, { prompt: e.target.value })} placeholder={`Question ${i + 1} prompt`} className="w-full border border-slate-300 rounded p-2 text-sm" />
                                 {q.type === 'mcq' && (
                                     <>
-                                        <input value={q.optionsText} onChange={e => updateQ(i, { optionsText: e.target.value, correct: [] })} placeholder="Options, comma-separated (e.g. 4, 5, 22)" className="w-full border border-slate-300 rounded p-2 text-sm" />
+                                        <input id={`q-${i}-options`} name={`q-${i}-options`} aria-label={`Question ${i + 1} options`} value={q.optionsText} onChange={e => updateQ(i, { optionsText: e.target.value, correct: [] })} placeholder="Options, comma-separated (e.g. 4, 5, 22)" className="w-full border border-slate-300 rounded p-2 text-sm" />
                                         {q.optionsText.split(',').map(s => s.trim()).filter(Boolean).length > 0 && (
                                             <div className="flex flex-wrap gap-3">
                                                 {q.optionsText.split(',').map(s => s.trim()).filter(Boolean).map((opt, idx) => (
                                                     <label key={idx} className="flex items-center gap-1.5 text-xs bg-white border border-slate-200 rounded-full px-3 py-1 cursor-pointer">
-                                                        <input type="checkbox" checked={q.correct.includes(idx)} onChange={() => updateQ(i, { correct: q.correct.includes(idx) ? q.correct.filter(x => x !== idx) : [...q.correct, idx] })} />
+                                                        <input type="checkbox" name={`q-${i}-correct`} value={idx} checked={q.correct.includes(idx)} onChange={() => updateQ(i, { correct: q.correct.includes(idx) ? q.correct.filter(x => x !== idx) : [...q.correct, idx] })} />
                                                         <span>{opt}</span>
                                                     </label>
                                                 ))}
