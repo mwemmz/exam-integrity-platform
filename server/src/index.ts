@@ -1,4 +1,5 @@
 import express from 'express';
+import cors from 'cors';
 import path from 'path';
 import authRoutes from './routes/auth';
 import examRoutes from './routes/exams';
@@ -10,6 +11,7 @@ import instructorDetailsRoutes from './routes/instructor_details';
 import adminRoutes from './routes/admin';
 
 const app = express();
+app.use(cors());
 app.use(express.json({ limit: '5mb' }));
 
 app.get('/', (_req, res) => {
