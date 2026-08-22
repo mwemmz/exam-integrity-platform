@@ -3,8 +3,9 @@ services:
   - type: web
     name: exam-integrity-server
     runtime: node
-    buildCommand: "cd server && npm install && npm run build"
-    startCommand: "cd server && npm start"
+    rootDir: server
+    buildCommand: "npm install && npm run build"
+    startCommand: "npm start"
     envVars:
       - key: DATABASE_URL
         fromSecret:
@@ -18,5 +19,6 @@ services:
 # Static Site (Frontend)
 staticSites:
   - name: exam-integrity-client
-    buildCommand: "cd client && npm install && npm run build"
-    staticPublishPath: "client/dist"
+    rootDir: client
+    buildCommand: "npm install && npm run build"
+    staticPublishPath: "dist"
