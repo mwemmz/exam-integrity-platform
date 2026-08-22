@@ -1,10 +1,10 @@
 services:
+  # Backend Server
   - type: web
     name: exam-integrity-server
     runtime: node
-    rootDir: server
-    buildCommand: npm install && npm run build
-    startCommand: npm start
+    buildCommand: "cd server && npm install && npm run build"
+    startCommand: "cd server && npm start"
     envVars:
       - key: DATABASE_URL
         fromSecret:
@@ -15,8 +15,9 @@ services:
       - key: NODE_ENV
         value: production
 
-staticSites:
-  - name: exam-integrity-client
-    rootDir: client
-    buildCommand: npm install && npm run build
-    staticPublishPath: dist
+  # Frontend Client
+  - type: web
+    name: exam-integrity-client
+    runtime: node
+    buildCommand: "cd client && npm install && npm run build"
+    startCommand: "cd client && npm run start"
