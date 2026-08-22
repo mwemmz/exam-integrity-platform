@@ -1,5 +1,4 @@
 services:
-  # Backend Server
   - type: web
     name: exam-integrity-server
     runtime: node
@@ -7,15 +6,12 @@ services:
     startCommand: "cd server && npm start"
     envVars:
       - key: DATABASE_URL
-        fromSecret:
-          name: neon-database-url
+        value: dummy-value-will-override-in-ui
       - key: JWT_SECRET
-        fromSecret:
-          name: jwt-secret
+        value: dummy-value-will-override-in-ui
       - key: NODE_ENV
         value: production
 
-  # Frontend Client
   - type: web
     name: exam-integrity-client
     runtime: node
