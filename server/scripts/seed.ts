@@ -36,16 +36,18 @@ async function seed() {
 
     // Questions
     await pool.query(
-      'INSERT INTO questions (exam_id, type, prompt, points, order_index) VALUES ($1, $2, $3, $4, $5)',
-      [examId, 'mcq', 'What is 2+2?', 5, 1]
+      'INSERT INTO questions (exam_id, type, prompt, points, order_index, options, correct_answer) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+      [examId, 'mcq', 'What is 2 + 2?', 5, 1,
+       JSON.stringify(['3', '4', '5', '22']),
+       JSON.stringify([1])]
     );
     await pool.query(
       'INSERT INTO questions (exam_id, type, prompt, points, order_index) VALUES ($1, $2, $3, $4, $5)',
-      [examId, 'essay', 'Describe the cloud.', 10, 2]
+      [examId, 'essay', 'Describe the water cycle in your own words.', 10, 2]
     );
     await pool.query(
       'INSERT INTO questions (exam_id, type, prompt, points, order_index) VALUES ($1, $2, $3, $4, $5)',
-      [examId, 'practical', 'Paste your code.', 10, 3]
+      [examId, 'practical', 'Write a function that reverses a string. Paste your code below.', 10, 3]
     );
 
     console.log('Seeding complete!');

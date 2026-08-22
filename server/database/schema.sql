@@ -73,3 +73,5 @@ CREATE TABLE webcam_snapshots (
     image_url VARCHAR(255) NOT NULL,
     captured_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+ALTER TABLE exams ADD COLUMN IF NOT EXISTS grades_released BOOLEAN DEFAULT FALSE;
