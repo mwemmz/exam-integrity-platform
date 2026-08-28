@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { startProctoring } from '../../lib/proctor';
+import { isOnline, loadAnswers, persistAnswers, clearAnswers, loadDirty, persistDirty, clearDirty } from '../../lib/offline';
 
 interface Question {
     id: number;
@@ -33,16 +34,18 @@ export default function ExamPage() {
     const audioEnabled = !!(location.state as { audioEnabled?: boolean } | null)?.audioEnabled;
 
     const [questions, setQuestions] = useState<Question[]>([]);
-    const [answers, setAnswers] = useState<Record<number, string>>({});
+    const [answers, setAnswers] = useState<Record<number, string>>(() => loadAnswers(attemptId));
     const [phase, setPhase] = useState<'loading' | 'active' | 'locked'>('loading');
     const [autoReason, setAutoReason] = useState('');
     const [remaining, setRemaining] = useState(0);
     const [error, setError] = useState('');
     const [submitting, setSubmitting] = useState(false);
+    const [online, setOnline] = useState(() => isOnline());
+    const [submitError, setSubmitError] = useState('');
     const [proctorStatus, setProctorStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
 
     const answersRef = useRef(answers);
-    const dirtyRef = useRef<Set<number>>(new Set());
+    const dirtyRef = useRef<Set<number>>(loadDirty(attemptId));
     const phaseRef = useRef(phase);
     const deadlineRef = useRef<number | null>(null);
     const fsExitAtRef = useRef<number | null>(null);
@@ -70,7 +73,9 @@ export default function ExamPage() {
         }
     }, [attemptId, lockExam]);
 
-    const flushSaves = useCallback(async () => {
+    const flushSaves = useCallback(async (): Promise<boolean> => {
+        if (!isOnline()) return false;
+        let ok = true;
         for (const qid of Array.from(dirtyRef.current)) {
             dirtyRef.current.delete(qid);
             try {
@@ -80,17 +85,34 @@ export default function ExamPage() {
                 });
             } catch {
                 dirtyRef.current.add(qid);
+                ok = false;
             }
         }
+        persistDirty(attemptId, dirtyRef.current);
+        return ok;
     }, [attemptId]);
 
     const submitExam = useCallback(async () => {
         if (submittedRef.current) return;
+        if (!isOnline()) {
+            setSubmitting(false);
+            setSubmitError("You're offline — your answers are saved on this device. Reconnect and press Submit again.");
+            return;
+        }
         submittedRef.current = true;
         setSubmitting(true);
-        await flushSaves();
+        setSubmitError('');
+        const flushed = await flushSaves();
+        if (!flushed) {
+            submittedRef.current = false;
+            setSubmitting(false);
+            setSubmitError('Could not sync all answers to the server yet. Reconnect and press Submit again.');
+            return;
+        }
         try {
             await api(`/api/attempts/${attemptId}/submit`, { method: 'POST' });
+            clearAnswers(attemptId);
+            clearDirty(attemptId);
         } catch {
             // already submitted (e.g. by rule engine)
         }
@@ -145,14 +167,35 @@ export default function ExamPage() {
             if (phaseRef.current !== 'active') return;
             try {
                 const st = await api<StatusResp>(`/api/attempts/${attemptId}/status`);
+                setOnline(true);
                 if (st.status === 'auto_submitted') lockExam(st.auto_submit_reason?.rule || 'Too many integrity violations');
                 else if (st.status !== 'in_progress') lockExam('This attempt was already submitted');
             } catch {
+                setOnline(false);
                 // ignore polling errors
             }
         }, 8000);
         return () => clearInterval(iv);
     }, [attemptId, lockExam]);
+
+    useEffect(() => {
+        const onConn = () => setOnline(isOnline());
+        window.addEventListener('online', onConn);
+        window.addEventListener('offline', onConn);
+        return () => {
+            window.removeEventListener('online', onConn);
+            window.removeEventListener('offline', onConn);
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!online || phaseRef.current !== 'active') return;
+        if (deadlineRef.current && Date.now() >= deadlineRef.current && !submittedRef.current) {
+            void submitExam();
+        } else {
+            void flushSaves();
+        }
+    }, [online, flushSaves, submitExam]);
 
     useEffect(() => {
         const iv = setInterval(() => {
@@ -162,7 +205,12 @@ export default function ExamPage() {
     }, [flushSaves]);
 
     useEffect(() => {
-        const onVis = () => { if (document.hidden) void logEvent('tab_switch'); };
+        const onVis = () => {
+            if (document.hidden) {
+                void logEvent('tab_switch');
+                void flushSaves();
+            }
+        };
         const onFs = () => {
             if (!document.fullscreenElement) {
                 fsExitAtRef.current = Date.now();
@@ -183,7 +231,7 @@ export default function ExamPage() {
                 void logEvent('fullscreen_exit', { seconds });
             }
         };
-    }, [logEvent]);
+    }, [logEvent, flushSaves]);
 
     useEffect(() => {
         if (!webcamEnabled && !audioEnabled) return;
@@ -243,8 +291,13 @@ export default function ExamPage() {
     }, [webcamEnabled, audioEnabled, attemptId, logEvent]);
 
     const updateAnswer = (qid: number, value: string) => {
-        setAnswers(prev => ({ ...prev, [qid]: value }));
+        setAnswers(prev => {
+            const next = { ...prev, [qid]: value };
+            persistAnswers(attemptId, next);
+            return next;
+        });
         dirtyRef.current.add(qid);
+        persistDirty(attemptId, dirtyRef.current);
     };
 
     const selectedFor = (qid: number): number[] => {
@@ -302,6 +355,9 @@ export default function ExamPage() {
                             {proctorStatus === 'ready' ? 'AI monitoring active' : proctorStatus === 'loading' ? 'Starting AI monitoring…' : 'AI monitoring unavailable'}
                         </span>
                     )}
+                    {!online && (
+                        <span className="ml-2 text-[11px] px-2 py-0.5 rounded-full font-semibold align-middle bg-red-500/20 border border-red-400/50 text-red-200">Offline</span>
+                    )}
                     <span className="ml-2 text-slate-400 hidden md:inline">Tab switches and full-screen exits are being recorded</span>
                 </div>
                 <div className={`px-3 py-1.5 rounded-lg font-mono font-bold text-base sm:text-lg shrink-0 border ${remaining <= 60 ? 'bg-red-500/20 border-red-400/50 text-red-200 shadow-lg shadow-red-500/30' : 'bg-sky-500/15 border-sky-400/30 text-sky-100'}`}>
@@ -311,6 +367,21 @@ export default function ExamPage() {
 
             <div className="max-w-3xl mx-auto p-4 sm:p-6 space-y-5">
                 {error && <div className="text-sm text-red-300 bg-red-500/10 border border-red-400/30 rounded-lg px-3 py-2">{error}</div>}
+
+                {!online && (
+                    <div className="text-sm text-amber-200 bg-amber-500/10 border border-amber-400/40 rounded-lg px-4 py-3">
+                        You're offline — answers are saved on this device and will sync automatically when you reconnect.
+                    </div>
+                )}
+
+                {submitError && (
+                    <div className="text-sm text-red-200 bg-red-500/10 border border-red-400/40 rounded-lg px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
+                        <span className="min-w-0">{submitError}</span>
+                        <button onClick={() => void submitExam()} disabled={submitting} className="btn-primary px-3 py-1.5 text-xs shrink-0">
+                            Retry submit
+                        </button>
+                    </div>
+                )}
 
                 {questions.map((q, i) => (
                     <div key={q.id} className="glass glass-glow rounded-xl p-5">
@@ -355,7 +426,7 @@ export default function ExamPage() {
             </div>
 
             <div className="fixed bottom-0 left-0 right-0 bg-[#0d1122]/85 backdrop-blur-xl border-t border-white/10 px-4 sm:px-6 py-3 flex items-center justify-between gap-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-                <span className="text-[11px] sm:text-xs text-slate-400 hidden sm:block">Answers auto-save every 15 seconds</span>
+                <span className="text-[11px] sm:text-xs text-slate-400 hidden sm:block">Auto-saves on this device & syncs to the server</span>
                 <button
                     onClick={() => { if (window.confirm('Submit your exam for grading? You cannot change answers afterwards.')) void submitExam(); }}
                     disabled={submitting}
