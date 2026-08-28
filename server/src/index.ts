@@ -19,6 +19,7 @@ app.get('/', (_req, res) => {
 });
 
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+app.use('/static', express.static(path.join(__dirname, '../static')));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/exams', examRoutes);
