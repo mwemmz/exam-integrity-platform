@@ -84,20 +84,20 @@ export default function AttemptDetailPage() {
         }
     };
 
-    if (!data) return <div className="p-8 text-slate-500">Loading attempt…</div>;
+    if (!data) return <div className="p-8 text-slate-400">Loading attempt…</div>;
 
     const { attempt } = data;
 
     const eventStyles: Record<string, string> = {
-        auto_submit_triggered: 'border-red-300 bg-red-50 text-red-800 font-medium',
-        face_missing: 'border-red-300 bg-red-50 text-red-800',
-        multi_face: 'border-red-300 bg-red-50 text-red-800',
-        phone_detected: 'border-amber-300 bg-amber-50 text-amber-800',
-        voice_detected: 'border-amber-300 bg-amber-50 text-amber-800',
-        gaze_away: 'border-amber-300 bg-amber-50 text-amber-800',
-        tab_switch: 'border-orange-200 bg-orange-50 text-orange-800',
-        fullscreen_exit: 'border-orange-200 bg-orange-50 text-orange-800',
-        paste_blocked: 'border-slate-200 bg-white'
+        auto_submit_triggered: 'border-red-400/40 bg-red-500/15 text-red-200 font-medium',
+        face_missing: 'border-red-400/40 bg-red-500/15 text-red-200',
+        multi_face: 'border-red-400/40 bg-red-500/15 text-red-200',
+        phone_detected: 'border-amber-400/40 bg-amber-500/15 text-amber-200',
+        voice_detected: 'border-amber-400/40 bg-amber-500/15 text-amber-200',
+        gaze_away: 'border-amber-400/40 bg-amber-500/15 text-amber-200',
+        tab_switch: 'border-orange-400/30 bg-orange-500/10 text-orange-200',
+        fullscreen_exit: 'border-orange-400/30 bg-orange-500/10 text-orange-200',
+        paste_blocked: 'border-white/10 bg-white/5 text-slate-300'
     };
     const eventLabels: Record<string, string> = {
         auto_submit_triggered: 'Auto-submitted (rule)',
@@ -114,30 +114,30 @@ export default function AttemptDetailPage() {
 
     return (
         <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
-            <Link to={`/instructor/exams/${examId}/gradebook`} className="text-indigo-600 hover:underline text-sm font-medium">← Back to gradebook</Link>
+            <Link to={`/instructor/exams/${examId}/gradebook`} className="text-indigo-300 hover:text-indigo-200 hover:underline text-sm font-medium">← Back to gradebook</Link>
 
-            <div className="bg-white border border-slate-200 rounded-xl p-5 flex flex-wrap items-center justify-between gap-3">
-                <div>
-                    <h1 className="text-xl font-bold">{attempt.student_name}</h1>
-                    <p className="text-sm text-slate-500">{attempt.exam_title}</p>
+            <div className="glass-strong glass-glow rounded-xl p-5 flex flex-wrap items-center justify-between gap-3">
+                <div className="min-w-0">
+                    <h1 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 to-violet-400 glow-text">{attempt.student_name}</h1>
+                    <p className="text-sm text-slate-400 break-words">{attempt.exam_title}</p>
                 </div>
                 <div className="text-right">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${attempt.status === 'auto_submitted' ? 'bg-red-100 text-red-700' : attempt.status === 'submitted' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                    <span className={`chip ${attempt.status === 'auto_submitted' ? 'bg-red-500/15 border border-red-400/40 text-red-300' : attempt.status === 'submitted' ? 'bg-emerald-500/15 border border-emerald-400/40 text-emerald-300' : 'bg-amber-500/15 border border-amber-400/40 text-amber-300'}`}>
                         {attempt.status.replace('_', ' ')}
                     </span>
-                    <p className="text-xs text-slate-400 mt-1">{attempt.submitted_at ? new Date(attempt.submitted_at).toLocaleString() : 'not submitted'}</p>
+                    <p className="text-xs text-slate-500 mt-1">{attempt.submitted_at ? new Date(attempt.submitted_at).toLocaleString() : 'not submitted'}</p>
                     <p className="text-lg font-bold">{totalScore ?? '—'} pts</p>
-                    {savedMsg && <span className="text-xs text-emerald-600 font-medium">{savedMsg}</span>}
+                    {savedMsg && <span className="text-xs text-emerald-300 font-medium">{savedMsg}</span>}
                 </div>
             </div>
 
             <section className="space-y-3">
-                <h2 className="font-semibold">Answers</h2>
+                <h2 className="font-semibold text-slate-100">Answers</h2>
                 {data.answers.map((a, i) => (
-                    <div key={a.question_id} className="bg-white border border-slate-200 rounded-xl p-4">
+                    <div key={a.question_id} className="glass glass-glow rounded-xl p-4">
                         <div className="flex items-start justify-between gap-3 mb-2">
-                            <p className="font-medium text-sm">{i + 1}. {a.prompt}</p>
-                            <span className="shrink-0 text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-full">{a.points} pts · {a.type}</span>
+                            <p className="font-medium text-sm text-slate-100">{i + 1}. {a.prompt}</p>
+                            <span className="shrink-0 chip bg-white/5 border border-white/10 text-slate-400">{a.points} pts · {a.type}</span>
                         </div>
 
                         {a.type === 'mcq' ? (
@@ -148,22 +148,22 @@ export default function AttemptDetailPage() {
                                     const isCorrect = (a.correct_answer || []).includes(idx);
                                     const isChosen = Array.isArray(chosen) && chosen.includes(idx);
                                     return (
-                                        <p key={idx} className={`text-sm ${isCorrect ? 'text-emerald-700' : isChosen ? 'text-red-600' : 'text-slate-500'}`}>
+                                        <p key={idx} className={`text-sm ${isCorrect ? 'text-emerald-300' : isChosen ? 'text-red-300' : 'text-slate-400'}`}>
                                             {isCorrect ? '✓' : isChosen ? '✗' : '·'} {opt}
                                             {isCorrect && <span className="ml-1.5 text-xs">(correct)</span>}
                                         </p>
                                     );
                                 })}
-                                <p className="text-xs text-slate-400 mt-1">Auto-score: {a.auto_score ?? 0} / {a.points}</p>
+                                <p className="text-xs text-slate-500 mt-1">Auto-score: {a.auto_score ?? 0} / {a.points}</p>
                             </div>
                         ) : (
                             <>
-                                <pre className="text-xs bg-slate-50 border border-slate-100 rounded-lg p-3 whitespace-pre-wrap font-sans text-slate-700 mb-2 max-h-60 overflow-y-auto">
+                                <pre className="text-xs bg-black/25 border border-white/10 rounded-lg p-3 whitespace-pre-wrap font-sans text-slate-300 mb-2 max-h-60 overflow-y-auto">
                                     {a.response_text || '(no answer)'}
                                 </pre>
                                 <div className="flex flex-col sm:flex-row sm:items-end gap-2">
                                     <div className="sm:w-24">
-                                        <label htmlFor={`score-${a.question_id}`} className="block text-xs text-slate-500 mb-1">Score (max {a.points})</label>
+                                        <label htmlFor={`score-${a.question_id}`} className="block text-xs text-slate-400 mb-1">Score (max {a.points})</label>
                                         <input
                                             id={`score-${a.question_id}`}
                                             name={`score-${a.question_id}`}
@@ -172,24 +172,24 @@ export default function AttemptDetailPage() {
                                             max={a.points}
                                             value={grades[a.question_id]?.score ?? ''}
                                             onChange={e => setGrades(g => ({ ...g, [a.question_id]: { ...g[a.question_id], score: e.target.value } }))}
-                                            className="w-full border border-slate-300 rounded-lg p-2 text-sm"
+                                            className="input-glass"
                                         />
                                     </div>
                                     <div className="flex-1">
-                                        <label htmlFor={`feedback-${a.question_id}`} className="block text-xs text-slate-500 mb-1">Feedback</label>
+                                        <label htmlFor={`feedback-${a.question_id}`} className="block text-xs text-slate-400 mb-1">Feedback</label>
                                         <textarea
                                             id={`feedback-${a.question_id}`}
                                             name={`feedback-${a.question_id}`}
                                             rows={2}
                                             value={grades[a.question_id]?.feedback ?? ''}
                                             onChange={e => setGrades(g => ({ ...g, [a.question_id]: { ...g[a.question_id], feedback: e.target.value } }))}
-                                            className="w-full border border-slate-300 rounded-lg p-2 text-sm"
+                                            className="input-glass resize-none"
                                         />
                                     </div>
-                                    <button onClick={() => void saveGrade(a.question_id)} className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 self-start sm:self-auto">Save</button>
+                                    <button onClick={() => void saveGrade(a.question_id)} className="btn-primary px-4 py-2 text-sm self-start sm:self-auto">Save</button>
                                 </div>
                                 {a.feedback && !grades[a.question_id]?.feedback && (
-                                    <p className="text-xs text-slate-400 mt-1 italic">Previous feedback: “{a.feedback}”</p>
+                                    <p className="text-xs text-slate-500 mt-1 italic">Previous feedback: “{a.feedback}”</p>
                                 )}
                             </>
                         )}
@@ -198,7 +198,7 @@ export default function AttemptDetailPage() {
             </section>
 
             <section>
-                <h2 className="font-semibold mb-2">Integrity Timeline</h2>
+                <h2 className="font-semibold mb-2 text-slate-100">Integrity Timeline</h2>
                 {data.events.length === 0 ? (
                     <p className="text-sm text-slate-400">No integrity events recorded.</p>
                 ) : (
@@ -207,13 +207,13 @@ export default function AttemptDetailPage() {
                             {flagEventTypes.map(t => {
                                 const n = data.events.filter(e => e.event_type === t).length;
                                 if (!n) return null;
-                                const cls = (eventStyles[t] || '').includes('amber') ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700';
-                                return <span key={t} className={`px-2 py-0.5 rounded-full text-xs font-medium ${cls}`}>{eventLabels[t]}: {n}</span>;
+                                const red = t === 'auto_submit_triggered' || t === 'face_missing' || t === 'multi_face';
+                                return <span key={t} className={`chip border ${red ? 'bg-red-500/15 border-red-400/40 text-red-300' : 'bg-amber-500/15 border-amber-400/40 text-amber-300'}`}>{eventLabels[t]}: {n}</span>;
                             })}
                         </div>
                         <div className="space-y-1">
                             {data.events.map(ev => (
-                                <div key={ev.id} className={`rounded-lg border px-3 py-2 text-sm flex flex-wrap items-center justify-between gap-x-3 gap-y-1 ${eventStyles[ev.event_type] || 'border-slate-200 bg-white'}`}>
+                                <div key={ev.id} className={`rounded-lg border px-3 py-2 text-sm flex flex-wrap items-center justify-between gap-x-3 gap-y-1 ${eventStyles[ev.event_type] || 'border-white/10 bg-white/5 text-slate-300'}`}>
                                     <span className="min-w-0">{eventLabels[ev.event_type] || ev.event_type.replace(/_/g, ' ')}</span>
                                     <span className="text-xs opacity-70 text-right ml-auto">
                                         {ev.metadata && Object.keys(ev.metadata).length > 0 ? JSON.stringify(ev.metadata) : ''}
@@ -228,12 +228,12 @@ export default function AttemptDetailPage() {
 
             {data.snapshots.length > 0 && (
                 <section>
-                    <h2 className="font-semibold mb-2">Webcam Snapshots ({data.snapshots.length})</h2>
-                    <div className="flex gap-3 overflow-x-auto pb-2">
+                    <h2 className="font-semibold mb-2 text-slate-100">Webcam Snapshots ({data.snapshots.length})</h2>
+                    <div className="flex gap-3 scroll-x pb-2">
                         {data.snapshots.map(s => (
                             <figure key={s.id} className="shrink-0">
-                                <img src={fileUrl(s.image_url)} alt={`snapshot at ${s.captured_at}`} className="h-28 w-auto rounded-lg border border-slate-200" />
-                                <figcaption className="text-[10px] text-slate-400 mt-1">{new Date(s.captured_at).toLocaleTimeString()}</figcaption>
+                                <img src={fileUrl(s.image_url)} alt={`snapshot at ${s.captured_at}`} className="h-28 w-auto rounded-lg border border-white/15" />
+                                <figcaption className="text-[10px] text-slate-500 mt-1">{new Date(s.captured_at).toLocaleTimeString()}</figcaption>
                             </figure>
                         ))}
                     </div>

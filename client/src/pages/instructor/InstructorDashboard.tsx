@@ -105,67 +105,67 @@ export default function InstructorDashboard() {
 
     return (
         <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
-            <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold">Instructor Dashboard</h1>
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-300 to-violet-400 text-transparent bg-clip-text glow-text">Instructor Dashboard</h1>
                 <button
                     onClick={() => setShowForm(v => !v)}
-                    className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700"
+                    className={showForm ? 'btn-soft px-4 py-2 text-sm' : 'btn-primary px-4 py-2 text-sm'}
                 >
                     {showForm ? 'Cancel' : '+ New Exam'}
                 </button>
             </div>
 
-            {error && <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</div>}
+            {error && <div className="text-sm text-red-300 bg-red-500/10 border border-red-400/30 rounded-lg px-3 py-2">{error}</div>}
 
             {showForm && (
-                <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-4">
-                    <h2 className="font-semibold">Create Exam</h2>
+                <div className="glass-strong glass-glow rounded-xl p-5 space-y-4">
+                    <h2 className="font-semibold text-slate-100">Create Exam</h2>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <input id="exam-title" name="title" aria-label="Exam title" value={title} onChange={e => setTitle(e.target.value)} placeholder="Exam title" className="col-span-2 border border-slate-300 rounded-lg p-2 text-sm" />
-                        <input id="exam-time-limit" name="timeLimitMinutes" type="number" min="1" aria-label="Time limit in minutes" value={timeLimit} onChange={e => setTimeLimit(e.target.value)} placeholder="Time limit (min)" className="border border-slate-300 rounded-lg p-2 text-sm" />
-                        <textarea id="exam-description" name="description" aria-label="Exam description" value={description} onChange={e => setDescription(e.target.value)} placeholder="Instructions / description" rows={2} className="col-span-3 border border-slate-300 rounded-lg p-2 text-sm" />
+                        <input id="exam-title" name="title" aria-label="Exam title" value={title} onChange={e => setTitle(e.target.value)} placeholder="Exam title" className="input-glass col-span-2" />
+                        <input id="exam-time-limit" name="timeLimitMinutes" type="number" min="1" aria-label="Time limit in minutes" value={timeLimit} onChange={e => setTimeLimit(e.target.value)} placeholder="Time limit (min)" className="input-glass" />
+                        <textarea id="exam-description" name="description" aria-label="Exam description" value={description} onChange={e => setDescription(e.target.value)} placeholder="Instructions / description" rows={2} className="input-glass col-span-3 resize-none" />
                     </div>
 
                     <div className="space-y-3">
                         {questions.map((q, i) => (
-                            <div key={i} className="border border-slate-200 rounded-lg p-4 space-y-2 bg-slate-50">
-                                <div className="flex items-center gap-2">
-                                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${q.type === 'mcq' ? 'bg-blue-100 text-blue-700' : q.type === 'essay' ? 'bg-purple-100 text-purple-700' : 'bg-orange-100 text-orange-700'}`}>{q.type}</span>
-                                    <span className="text-xs text-slate-400">Question {i + 1}</span>
+                            <div key={i} className="glass rounded-lg p-4 space-y-2">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <span className={`chip ${q.type === 'mcq' ? 'bg-blue-500/15 border border-blue-400/40 text-blue-300' : q.type === 'essay' ? 'bg-purple-500/15 border border-purple-400/40 text-purple-300' : 'bg-orange-500/15 border border-orange-400/40 text-orange-300'}`}>{q.type}</span>
+                                    <span className="text-xs text-slate-500">Question {i + 1}</span>
                                     <div className="ml-auto flex items-center gap-2">
-                                        <label htmlFor={`q-${i}-points`} className="text-xs text-slate-500">Points</label>
-                                        <input id={`q-${i}-points`} name={`q-${i}-points`} type="number" min="1" aria-label={`Points for question ${i + 1}`} value={q.points} onChange={e => updateQ(i, { points: Number(e.target.value) || 1 })} className="w-16 border border-slate-300 rounded p-1 text-xs" />
-                                        <button onClick={() => setQuestions(qs => qs.filter((_, j) => j !== i))} className="text-red-500 hover:text-red-700 text-xs font-medium">Remove</button>
+                                        <label htmlFor={`q-${i}-points`} className="text-xs text-slate-400">Points</label>
+                                        <input id={`q-${i}-points`} name={`q-${i}-points`} type="number" min="1" aria-label={`Points for question ${i + 1}`} value={q.points} onChange={e => updateQ(i, { points: Number(e.target.value) || 1 })} className="input-glass w-16 py-1 text-xs" />
+                                        <button onClick={() => setQuestions(qs => qs.filter((_, j) => j !== i))} className="text-red-400 hover:text-red-300 text-xs font-medium">Remove</button>
                                     </div>
                                 </div>
-                                <input id={`q-${i}-prompt`} name={`q-${i}-prompt`} aria-label={`Question ${i + 1} prompt`} value={q.prompt} onChange={e => updateQ(i, { prompt: e.target.value })} placeholder={`Question ${i + 1} prompt`} className="w-full border border-slate-300 rounded p-2 text-sm" />
+                                <input id={`q-${i}-prompt`} name={`q-${i}-prompt`} aria-label={`Question ${i + 1} prompt`} value={q.prompt} onChange={e => updateQ(i, { prompt: e.target.value })} placeholder={`Question ${i + 1} prompt`} className="input-glass" />
                                 {q.type === 'mcq' && (
                                     <>
-                                        <input id={`q-${i}-options`} name={`q-${i}-options`} aria-label={`Question ${i + 1} options`} value={q.optionsText} onChange={e => updateQ(i, { optionsText: e.target.value, correct: [] })} placeholder="Options, comma-separated (e.g. 4, 5, 22)" className="w-full border border-slate-300 rounded p-2 text-sm" />
+                                        <input id={`q-${i}-options`} name={`q-${i}-options`} aria-label={`Question ${i + 1} options`} value={q.optionsText} onChange={e => updateQ(i, { optionsText: e.target.value, correct: [] })} placeholder="Options, comma-separated (e.g. 4, 5, 22)" className="input-glass" />
                                         {q.optionsText.split(',').map(s => s.trim()).filter(Boolean).length > 0 && (
                                             <div className="flex flex-wrap gap-3">
                                                 {q.optionsText.split(',').map(s => s.trim()).filter(Boolean).map((opt, idx) => (
-                                                    <label key={idx} className="flex items-center gap-1.5 text-xs bg-white border border-slate-200 rounded-full px-3 py-1 cursor-pointer">
-                                                        <input type="checkbox" name={`q-${i}-correct`} value={idx} checked={q.correct.includes(idx)} onChange={() => updateQ(i, { correct: q.correct.includes(idx) ? q.correct.filter(x => x !== idx) : [...q.correct, idx] })} />
+                                                    <label key={idx} className="flex items-center gap-1.5 text-xs bg-white/5 border border-white/15 rounded-full px-3 py-1 cursor-pointer hover:border-indigo-400/50 transition-colors">
+                                                        <input type="checkbox" name={`q-${i}-correct`} value={idx} checked={q.correct.includes(idx)} onChange={() => updateQ(i, { correct: q.correct.includes(idx) ? q.correct.filter(x => x !== idx) : [...q.correct, idx] })} className="accent-indigo-500" />
                                                         <span>{opt}</span>
                                                     </label>
                                                 ))}
                                             </div>
                                         )}
-                                        <p className="text-xs text-slate-400">Check the box next to each correct option.</p>
+                                        <p className="text-xs text-slate-500">Check the box next to each correct option.</p>
                                     </>
                                 )}
                             </div>
                         ))}
                     </div>
 
-                    <div className="flex gap-2">
-                        <button onClick={() => addQuestion('mcq')} className="bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-blue-100">+ MCQ</button>
-                        <button onClick={() => addQuestion('essay')} className="bg-purple-50 text-purple-700 border border-purple-200 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-purple-100">+ Essay</button>
-                        <button onClick={() => addQuestion('practical')} className="bg-orange-50 text-orange-700 border border-orange-200 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-orange-100">+ Practical</button>
+                    <div className="flex gap-2 flex-wrap">
+                        <button onClick={() => addQuestion('mcq')} className="btn-soft px-3 py-1.5 text-xs border-blue-400/30 text-blue-300">+ MCQ</button>
+                        <button onClick={() => addQuestion('essay')} className="btn-soft px-3 py-1.5 text-xs border-purple-400/30 text-purple-300">+ Essay</button>
+                        <button onClick={() => addQuestion('practical')} className="btn-soft px-3 py-1.5 text-xs border-orange-400/30 text-orange-300">+ Practical</button>
                     </div>
 
-                    <button onClick={createExam} disabled={saving} className="bg-emerald-600 text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50">
+                    <button onClick={createExam} disabled={saving} className="btn-primary px-5 py-2 text-sm">
                         {saving ? 'Creating…' : 'Create Exam'}
                     </button>
                 </div>
@@ -173,30 +173,32 @@ export default function InstructorDashboard() {
 
             <div className="space-y-3">
                 {exams.length === 0 && !showForm && (
-                    <p className="text-slate-500 text-sm">No exams yet — click “+ New Exam” to build your first one.</p>
+                    <p className="text-slate-400 text-sm">No exams yet — click “+ New Exam” to build your first one.</p>
                 )}
                 {exams.map(exam => (
-                    <div key={exam.id} className="bg-white border border-slate-200 rounded-xl p-5 flex flex-wrap items-center justify-between gap-3">
-                        <div>
-                            <p className="font-semibold">{exam.title}</p>
-                            <p className="text-xs text-slate-400 mt-0.5">
+                    <div key={exam.id} className="glass glass-glow rounded-xl p-5 flex flex-wrap items-center justify-between gap-3">
+                        <div className="min-w-0">
+                            <p className="font-semibold break-words">{exam.title}</p>
+                            <p className="text-xs text-slate-500 mt-0.5 break-words">
                                 {exam.time_limit_minutes ? `${exam.time_limit_minutes} min · ` : ''}{exam.description || ''}
                             </p>
-                            <div className="flex gap-2 mt-1.5">
-                                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${exam.status === 'published' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
+                            <div className="flex gap-2 mt-1.5 flex-wrap">
+                                <span className={`chip ${exam.status === 'published' ? 'bg-emerald-500/15 border border-emerald-400/40 text-emerald-300' : 'bg-white/5 border border-white/10 text-slate-400'}`}>
                                     {exam.status}
                                 </span>
-                                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${exam.grades_released ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-50 text-amber-700'}`}>
+                                <span className={`chip ${exam.grades_released ? 'bg-indigo-500/15 border border-indigo-400/40 text-indigo-300' : 'bg-amber-500/10 border border-amber-400/30 text-amber-300'}`}>
                                     {exam.grades_released ? 'grades released' : 'grades hidden'}
                                 </span>
                             </div>
                         </div>
                         <div className="flex gap-2 flex-wrap">
-                            <Link to={`/instructor/exams/${exam.id}/gradebook`} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700">Gradebook</Link>
-                            <button onClick={() => toggleRelease(exam)} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-50 hover:bg-indigo-100 text-indigo-700">
+                            <Link to={`/instructor/exams/${exam.id}/gradebook`} className="btn-soft px-3 py-1.5 text-xs">Gradebook</Link>
+                            <button onClick={() => toggleRelease(exam)} className="btn-soft px-3 py-1.5 text-xs border-indigo-400/30 text-indigo-300">
                                 {exam.grades_released ? 'Hide grades' : 'Release grades'}
                             </button>
-                            <button onClick={() => togglePublish(exam)} className={`px-3 py-1.5 rounded-lg text-xs font-medium text-white ${exam.status === 'published' ? 'bg-amber-600 hover:bg-amber-700' : 'bg-emerald-600 hover:bg-emerald-700'}`}>
+                            <button onClick={() => togglePublish(exam)} className={`px-3 py-1.5 rounded-lg text-xs font-medium text-white transition-all duration-200 ${exam.status === 'published'
+                                ? 'bg-gradient-to-r from-amber-500 to-orange-500 shadow-lg shadow-amber-500/25 hover:shadow-amber-500/45 hover:brightness-110'
+                                : 'bg-gradient-to-r from-emerald-500 to-teal-500 shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/45 hover:brightness-110'}`}>
                                 {exam.status === 'published' ? 'Unpublish' : 'Publish'}
                             </button>
                         </div>

@@ -263,23 +263,23 @@ export default function ExamPage() {
     };
 
     if (phase === 'loading') {
-        return <div className="p-8 text-slate-500">Loading exam…</div>;
+        return <div className="p-8 text-slate-400">Loading exam…</div>;
     }
 
     if (phase === 'locked') {
         return (
             <div className="min-h-[70vh] flex items-center justify-center px-4">
-                <div className={`max-w-md w-full rounded-xl p-8 text-center border ${autoReason ? 'bg-red-50 border-red-200' : 'bg-white border-slate-200'}`}>
-                    <h1 className="text-xl font-bold mb-2">
+                <div className={`glass-strong rounded-xl p-8 text-center border ${autoReason ? 'border-red-400/40 bg-red-950/30' : 'border-white/15'}`}>
+                    <h1 className="text-xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 to-violet-400 glow-text">
                         {autoReason ? 'Exam submitted automatically' : 'Exam submitted'}
                     </h1>
                     {autoReason && (
-                        <p className="text-sm text-red-700 mb-4">Your exam was submitted automatically because {autoReason.toLowerCase()}.</p>
+                        <p className="text-sm text-red-300 mb-4">Your exam was submitted automatically because {autoReason.toLowerCase()}.</p>
                     )}
-                    <p className="text-sm text-slate-500 mb-6">Your answers up to this point have been saved.</p>
-                    <div className="flex gap-3 justify-center">
-                        <Link to={`/results/${attemptId}`} className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700">View status</Link>
-                        <Link to="/student" className="px-4 py-2 rounded-lg bg-slate-200 text-slate-700 text-sm font-medium hover:bg-slate-300">Back to dashboard</Link>
+                    <p className="text-sm text-slate-400 mb-6">Your answers up to this point have been saved.</p>
+                    <div className="flex gap-3 justify-center flex-wrap">
+                        <Link to={`/results/${attemptId}`} className="btn-primary px-4 py-2 text-sm">View status</Link>
+                        <Link to="/student" className="btn-soft px-4 py-2 text-sm">Back to dashboard</Link>
                     </div>
                 </div>
             </div>
@@ -288,52 +288,53 @@ export default function ExamPage() {
 
     return (
         <div onContextMenu={e => e.preventDefault()} className="pb-28">
-            <div className="sticky top-0 z-10 bg-indigo-700 text-white px-3 sm:px-6 py-3 flex items-center justify-between gap-2 shadow">
+            <div className="sticky top-0 z-10 bg-[#0d1122]/75 backdrop-blur-xl border-b border-white/10 text-white px-3 sm:px-6 py-3 flex items-center justify-between gap-2 shadow-lg shadow-black/20">
                 <div className="text-sm min-w-0">
                     <span className="font-semibold">Exam in progress</span>
                     {proctorStatus !== 'idle' && (
                         <span className={`ml-2 text-[11px] px-2 py-0.5 rounded-full font-medium align-middle ${
                             proctorStatus === 'ready'
-                                ? 'bg-emerald-900/60 text-emerald-200'
+                                ? 'bg-emerald-500/20 border border-emerald-400/40 text-emerald-300'
                                 : proctorStatus === 'loading'
-                                    ? 'bg-amber-900/50 text-amber-200'
-                                    : 'bg-slate-800/60 text-slate-300'
+                                    ? 'bg-amber-500/20 border border-amber-400/40 text-amber-300'
+                                    : 'bg-white/5 border border-white/15 text-slate-300'
                         }`}>
                             {proctorStatus === 'ready' ? 'AI monitoring active' : proctorStatus === 'loading' ? 'Starting AI monitoring…' : 'AI monitoring unavailable'}
                         </span>
                     )}
-                    <span className="ml-2 text-indigo-200 hidden md:inline">Tab switches and full-screen exits are being recorded</span>
+                    <span className="ml-2 text-slate-400 hidden md:inline">Tab switches and full-screen exits are being recorded</span>
                 </div>
-                <div className={`px-3 py-1.5 rounded-lg font-mono font-bold text-base sm:text-lg shrink-0 ${remaining <= 60 ? 'bg-red-600' : 'bg-indigo-900/60'}`}>
+                <div className={`px-3 py-1.5 rounded-lg font-mono font-bold text-base sm:text-lg shrink-0 border ${remaining <= 60 ? 'bg-red-500/20 border-red-400/50 text-red-200 shadow-lg shadow-red-500/30' : 'bg-indigo-500/15 border-indigo-400/30 text-indigo-100'}`}>
                     {deadlineRef.current ? fmt(remaining) : '--:--'}
                 </div>
             </div>
 
             <div className="max-w-3xl mx-auto p-4 sm:p-6 space-y-5">
-                {error && <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</div>}
+                {error && <div className="text-sm text-red-300 bg-red-500/10 border border-red-400/30 rounded-lg px-3 py-2">{error}</div>}
 
                 {questions.map((q, i) => (
-                    <div key={q.id} className="bg-white border border-slate-200 rounded-xl p-5">
+                    <div key={q.id} className="glass glass-glow rounded-xl p-5">
                         <div className="flex items-start justify-between gap-4 mb-3">
-                            <p className="font-medium">{i + 1}. {q.prompt}</p>
-                            <span className="shrink-0 text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-full">{q.points} pts · {q.type}</span>
+                            <p className="font-medium text-slate-100">{i + 1}. {q.prompt}</p>
+                            <span className="shrink-0 chip bg-white/5 border border-white/10 text-slate-400">{q.points} pts · {q.type}</span>
                         </div>
 
                         {q.type === 'mcq' && (
                             <div className="space-y-1.5">
                                 {(q.options || []).map((opt, idx) => (
-                                    <label key={idx} className="flex items-center gap-2 text-sm cursor-pointer hover:text-indigo-700">
+                                    <label key={idx} className="flex items-center gap-2 text-sm cursor-pointer rounded-lg px-2 -mx-2 py-1 transition-colors hover:bg-white/5">
                                         <input
                                             type="checkbox"
                                             name={`q${q.id}`}
                                             value={idx}
                                             checked={selectedFor(q.id).includes(idx)}
                                             onChange={() => toggleMcq(q.id, idx)}
+                                            className="accent-indigo-500"
                                         />
                                         <span>{opt}</span>
                                     </label>
                                 ))}
-                                <p className="text-xs text-slate-400 mt-1">Select all answers that apply.</p>
+                                <p className="text-xs text-slate-500 mt-1">Select all answers that apply.</p>
                             </div>
                         )}
 
@@ -346,19 +347,19 @@ export default function ExamPage() {
                                 onPaste={e => { e.preventDefault(); void logEvent('paste_blocked', { questionId: q.id }); }}
                                 rows={q.type === 'practical' ? 10 : 6}
                                 placeholder={q.type === 'practical' ? 'Type or write your answer here (paste is disabled)…' : 'Write your answer here…'}
-                                className="w-full border border-slate-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                                className="input-glass resize-none"
                             />
                         )}
                     </div>
                 ))}
             </div>
 
-            <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-4 sm:px-6 py-3 flex items-center justify-between gap-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <div className="fixed bottom-0 left-0 right-0 bg-[#0d1122]/85 backdrop-blur-xl border-t border-white/10 px-4 sm:px-6 py-3 flex items-center justify-between gap-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
                 <span className="text-[11px] sm:text-xs text-slate-400 hidden sm:block">Answers auto-save every 15 seconds</span>
                 <button
                     onClick={() => { if (window.confirm('Submit your exam for grading? You cannot change answers afterwards.')) void submitExam(); }}
                     disabled={submitting}
-                    className="flex-1 sm:flex-none bg-emerald-600 text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-emerald-700 disabled:opacity-50"
+                    className="flex-1 sm:flex-none bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-6 py-2.5 rounded-lg font-semibold shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/45 hover:brightness-110 disabled:opacity-50 transition-all duration-200"
                 >
                     {submitting ? 'Submitting…' : 'Submit Exam'}
                 </button>
