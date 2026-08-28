@@ -32,13 +32,13 @@ export default function App() {
         <BrowserRouter>
             <div className="min-h-screen relative overflow-x-clip">
                 <div aria-hidden className="pointer-events-none fixed inset-0 -z-10">
-                    <div className="absolute -top-32 -right-24 h-96 w-96 rounded-full bg-indigo-500/25 blur-3xl" />
-                    <div className="absolute top-1/3 -left-32 h-80 w-80 rounded-full bg-purple-500/20 blur-3xl" />
-                    <div className="absolute -bottom-24 right-1/4 h-72 w-72 rounded-full bg-cyan-500/15 blur-3xl" />
+                    <div className="absolute -top-32 -right-24 h-96 w-96 rounded-full bg-sky-500/20 blur-3xl" />
+                    <div className="absolute top-1/3 -left-32 h-80 w-80 rounded-full bg-sky-400/15 blur-3xl" />
+                    <div className="absolute -bottom-24 right-1/4 h-72 w-72 rounded-full bg-cyan-400/10 blur-3xl" />
                 </div>
                 {authed && (
                     <header className="sticky top-0 z-40 border-b border-white/10 bg-[#0d1122]/60 backdrop-blur-xl px-4 sm:px-6 py-3 flex items-center justify-between gap-2">
-                        <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 to-violet-400 text-sm sm:text-base truncate glow-text">Exam Integrity Platform</span>
+                        <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-sky-300 to-cyan-300 text-sm sm:text-base truncate glow-text">Exam Integrity Platform</span>
                         <div className="flex items-center gap-2 sm:gap-4 text-sm shrink-0">
                             <span className="text-slate-300 capitalize hidden sm:inline">{user!.role}</span>
                             <button onClick={logout} className="btn-soft px-3 py-1.5 text-xs sm:text-sm">

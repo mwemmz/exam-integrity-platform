@@ -27,7 +27,7 @@ export default function AdminDashboard() {
 
     return (
         <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-300 to-violet-400 text-transparent bg-clip-text glow-text">Admin Dashboard</h1>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-sky-300 to-cyan-300 text-transparent bg-clip-text glow-text">Admin Dashboard</h1>
             {error && <div className="text-sm text-red-300 bg-red-500/10 border border-red-400/30 rounded-lg px-3 py-2">{error}</div>}
 
             <section>
@@ -64,7 +64,7 @@ export default function AdminDashboard() {
                                     <tr key={u.id}>
                                         <td className="td font-medium">{u.name}</td>
                                         <td className="td text-slate-400">{u.email}</td>
-                                        <td className="td"><span className={`chip border ${u.role === 'admin' ? 'bg-purple-500/15 border-purple-400/40 text-purple-300' : u.role === 'instructor' ? 'bg-blue-500/15 border-blue-400/40 text-blue-300' : 'bg-emerald-500/15 border-emerald-400/40 text-emerald-300'}`}>{u.role}</span></td>
+                                        <td className="td"><span className={`chip border ${u.role === 'admin' ? 'bg-cyan-500/15 border-cyan-400/40 text-cyan-300' : u.role === 'instructor' ? 'bg-blue-500/15 border-blue-400/40 text-blue-300' : 'bg-emerald-500/15 border-emerald-400/40 text-emerald-300'}`}>{u.role}</span></td>
                                         <td className="td text-slate-400">{u.institution_id ?? '—'}</td>
                                     </tr>
                                 ))}

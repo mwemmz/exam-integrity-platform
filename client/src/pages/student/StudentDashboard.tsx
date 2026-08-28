@@ -27,7 +27,7 @@ export default function StudentDashboard() {
 
     return (
         <div className="max-w-3xl mx-auto p-4 sm:p-6">
-            <h1 className="text-2xl font-bold mb-1 bg-gradient-to-r from-indigo-300 to-violet-400 text-transparent bg-clip-text glow-text">My Exams</h1>
+            <h1 className="text-2xl font-bold mb-1 bg-gradient-to-r from-sky-300 to-cyan-300 text-transparent bg-clip-text glow-text">My Exams</h1>
             <p className="text-sm text-slate-400 mb-6">Exams available to you right now.</p>
 
             {error && <div className="mb-4 text-sm text-red-300 bg-red-500/10 border border-red-400/30 rounded-lg px-3 py-2">{error}</div>}

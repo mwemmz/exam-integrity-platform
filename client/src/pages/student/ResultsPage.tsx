@@ -38,8 +38,8 @@ export default function ResultsPage() {
                     <h1 className="text-lg font-semibold mb-2 text-amber-300">Grades not released yet</h1>
                     <p className="text-sm text-slate-400 mb-4">Your exam was submitted successfully. Your instructor will release the grades when grading is complete.</p>
                     {getAuthUser()?.role === 'instructor'
-                        ? <Link to="/instructor" className="text-indigo-300 hover:text-indigo-200 hover:underline text-sm font-medium">Back to dashboard</Link>
-                        : <Link to="/student" className="text-indigo-300 hover:text-indigo-200 hover:underline text-sm font-medium">Back to dashboard</Link>}
+                        ? <Link to="/instructor" className="text-sky-300 hover:text-sky-200 hover:underline text-sm font-medium">Back to dashboard</Link>
+                        : <Link to="/student" className="text-sky-300 hover:text-sky-200 hover:underline text-sm font-medium">Back to dashboard</Link>}
                 </div>
             </div>
         );
@@ -62,7 +62,7 @@ export default function ResultsPage() {
                 </div>
                 {data.submittedAt && <p className="text-xs text-slate-500 mb-3">Submitted {new Date(data.submittedAt).toLocaleString()}</p>}
                 <div className="flex items-baseline gap-2">
-                    <span className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 to-violet-400">{data.totalScore ?? '—'}</span>
+                    <span className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-sky-300 to-cyan-300">{data.totalScore ?? '—'}</span>
                     <span className="text-slate-400 text-sm">total points
                         {data.answers.length > 0 && ` (${data.answers.reduce((s, a) => s + a.points, 0)} possible)`}
                     </span>
@@ -77,7 +77,7 @@ export default function ResultsPage() {
                             <div className="flex items-start justify-between gap-4 mb-2">
                                 <p className="font-medium text-sm">{i + 1}. {a.prompt}</p>
                                 <span className={`shrink-0 chip ${score != null
-                                    ? 'bg-indigo-500/15 border border-indigo-400/40 text-indigo-300'
+                                    ? 'bg-sky-500/15 border border-sky-400/40 text-sky-300'
                                     : 'bg-white/5 border border-white/10 text-slate-400'}`}>
                                     {score != null ? `${score} / ${a.points}` : `${a.points} pts`}
                                 </span>
@@ -90,7 +90,7 @@ export default function ResultsPage() {
                 })}
             </div>
 
-            <Link to={getAuthUser()?.role === 'instructor' ? '/instructor' : '/student'} className="inline-block text-indigo-300 hover:text-indigo-200 hover:underline text-sm font-medium">
+            <Link to={getAuthUser()?.role === 'instructor' ? '/instructor' : '/student'} className="inline-block text-sky-300 hover:text-sky-200 hover:underline text-sm font-medium">
                 ← Back to dashboard
             </Link>
         </div>

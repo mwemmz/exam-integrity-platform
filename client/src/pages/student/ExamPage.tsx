@@ -270,7 +270,7 @@ export default function ExamPage() {
         return (
             <div className="min-h-[70vh] flex items-center justify-center px-4">
                 <div className={`glass-strong rounded-xl p-8 text-center border ${autoReason ? 'border-red-400/40 bg-red-950/30' : 'border-white/15'}`}>
-                    <h1 className="text-xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 to-violet-400 glow-text">
+                    <h1 className="text-xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-sky-300 to-cyan-300 glow-text">
                         {autoReason ? 'Exam submitted automatically' : 'Exam submitted'}
                     </h1>
                     {autoReason && (
@@ -304,7 +304,7 @@ export default function ExamPage() {
                     )}
                     <span className="ml-2 text-slate-400 hidden md:inline">Tab switches and full-screen exits are being recorded</span>
                 </div>
-                <div className={`px-3 py-1.5 rounded-lg font-mono font-bold text-base sm:text-lg shrink-0 border ${remaining <= 60 ? 'bg-red-500/20 border-red-400/50 text-red-200 shadow-lg shadow-red-500/30' : 'bg-indigo-500/15 border-indigo-400/30 text-indigo-100'}`}>
+                <div className={`px-3 py-1.5 rounded-lg font-mono font-bold text-base sm:text-lg shrink-0 border ${remaining <= 60 ? 'bg-red-500/20 border-red-400/50 text-red-200 shadow-lg shadow-red-500/30' : 'bg-sky-500/15 border-sky-400/30 text-sky-100'}`}>
                     {deadlineRef.current ? fmt(remaining) : '--:--'}
                 </div>
             </div>
@@ -329,7 +329,7 @@ export default function ExamPage() {
                                             value={idx}
                                             checked={selectedFor(q.id).includes(idx)}
                                             onChange={() => toggleMcq(q.id, idx)}
-                                            className="accent-indigo-500"
+                                            className="accent-sky-400"
                                         />
                                         <span>{opt}</span>
                                     </label>

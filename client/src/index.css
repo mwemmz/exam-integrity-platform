@@ -9,10 +9,10 @@ body {
   min-height: 100vh;
   color: #e2e8f0;
   background:
-    radial-gradient(1100px 560px at 85% -10%, rgba(99, 102, 241, 0.20), transparent 60%),
-    radial-gradient(900px 520px at -10% 18%, rgba(168, 85, 247, 0.15), transparent 55%),
-    radial-gradient(800px 520px at 55% 115%, rgba(34, 211, 238, 0.10), transparent 55%),
-    linear-gradient(135deg, #0b1020 0%, #131129 48%, #0d1024 100%);
+    radial-gradient(1100px 560px at 85% -10%, rgba(56, 189, 248, 0.15), transparent 60%),
+    radial-gradient(900px 520px at -10% 18%, rgba(14, 165, 233, 0.10), transparent 55%),
+    radial-gradient(800px 520px at 55% 115%, rgba(34, 211, 238, 0.07), transparent 55%),
+    linear-gradient(135deg, #0b1020 0%, #111a30 48%, #0d1226 100%);
   background-attachment: fixed;
 }
 
@@ -38,9 +38,9 @@ body {
   }
 
   .glass-glow:hover {
-    border-color: rgba(129, 140, 248, 0.50);
+    border-color: rgba(56, 189, 248, 0.50);
     background: rgba(255, 255, 255, 0.09);
-    box-shadow: 0 10px 42px rgba(99, 102, 241, 0.24), inset 0 0 0 1px rgba(129, 140, 248, 0.10);
+    box-shadow: 0 10px 42px rgba(14, 165, 233, 0.22), inset 0 0 0 1px rgba(56, 189, 248, 0.12);
     transform: translateY(-2px);
   }
 
@@ -50,15 +50,15 @@ body {
     justify-content: center;
     border-radius: 0.6rem;
     font-weight: 600;
-    color: #fff;
-    background-image: linear-gradient(135deg, #6366f1, #8b5cf6);
-    box-shadow: 0 6px 22px rgba(99, 102, 241, 0.35);
+    color: #082f49;
+    background-image: linear-gradient(135deg, #7dd3fc, #38bdf8);
+    box-shadow: 0 6px 22px rgba(14, 165, 233, 0.35);
     transition: box-shadow 0.25s ease, filter 0.25s ease, transform 0.25s ease;
   }
 
   .btn-primary:hover {
-    box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.40), 0 10px 30px rgba(99, 102, 241, 0.55);
-    filter: brightness(1.08);
+    box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.45), 0 10px 30px rgba(14, 165, 233, 0.55);
+    filter: brightness(1.05);
     transform: translateY(-1px);
   }
 
@@ -84,8 +84,8 @@ body {
 
   .btn-soft:hover {
     background: rgba(255, 255, 255, 0.14);
-    border-color: rgba(129, 140, 248, 0.45);
-    box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.28), 0 6px 20px rgba(99, 102, 241, 0.28);
+    border-color: rgba(56, 189, 248, 0.50);
+    box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.28), 0 6px 20px rgba(14, 165, 233, 0.28);
   }
 
   .input-glass {
@@ -105,9 +105,9 @@ body {
   }
 
   .input-glass:focus {
-    border-color: rgba(129, 140, 248, 0.65);
+    border-color: rgba(56, 189, 248, 0.65);
     background: rgba(255, 255, 255, 0.09);
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.22), 0 0 22px rgba(99, 102, 241, 0.18);
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.22), 0 0 22px rgba(14, 165, 233, 0.18);
   }
 
   .label {
@@ -156,5 +156,9 @@ body {
   .scroll-x {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+  }
+
+  .glow-text {
+    text-shadow: 0 0 26px rgba(125, 211, 252, 0.45);
   }
 }

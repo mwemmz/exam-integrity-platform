@@ -38,11 +38,11 @@ export default function LoginPage({ onAuthed }: { onAuthed: () => void }) {
     return (
         <div className="min-h-screen flex items-center justify-center px-4 py-10 relative">
             <div aria-hidden className="pointer-events-none fixed inset-0 -z-10">
-                <div className="absolute -top-24 right-1/4 h-80 w-80 rounded-full bg-indigo-500/25 blur-3xl" />
-                <div className="absolute bottom-0 -left-24 h-72 w-72 rounded-full bg-violet-500/20 blur-3xl" />
+                <div className="absolute -top-24 right-1/4 h-80 w-80 rounded-full bg-sky-500/20 blur-3xl" />
+                <div className="absolute bottom-0 -left-24 h-72 w-72 rounded-full bg-sky-400/15 blur-3xl" />
             </div>
             <div className="w-full max-w-sm glass-strong glass-glow rounded-2xl p-6 sm:p-8">
-                <h1 className="text-xl font-bold mb-1 bg-gradient-to-r from-indigo-300 to-violet-400 text-transparent bg-clip-text glow-text">Exam Integrity Platform</h1>
+                <h1 className="text-xl font-bold mb-1 bg-gradient-to-r from-sky-300 to-cyan-300 text-transparent bg-clip-text glow-text">Exam Integrity Platform</h1>
                 <p className="text-sm text-slate-400 mb-6">
                     {mode === 'login' ? 'Sign in to continue' : 'Create your account'}
                 </p>
@@ -82,7 +82,7 @@ export default function LoginPage({ onAuthed }: { onAuthed: () => void }) {
                 </form>
 
                 <button onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); }}
-                    className="mt-4 w-full text-sm text-indigo-300 hover:text-indigo-200 hover:underline">
+                    className="mt-4 w-full text-sm text-sky-300 hover:text-sky-200 hover:underline">
                     {mode === 'login' ? "Don't have an account? Register" : 'Already have an account? Log in'}
                 </button>
 

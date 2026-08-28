@@ -106,7 +106,7 @@ export default function InstructorDashboard() {
     return (
         <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
             <div className="flex items-center justify-between gap-3 flex-wrap">
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-300 to-violet-400 text-transparent bg-clip-text glow-text">Instructor Dashboard</h1>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-sky-300 to-cyan-300 text-transparent bg-clip-text glow-text">Instructor Dashboard</h1>
                 <button
                     onClick={() => setShowForm(v => !v)}
                     className={showForm ? 'btn-soft px-4 py-2 text-sm' : 'btn-primary px-4 py-2 text-sm'}
@@ -130,7 +130,7 @@ export default function InstructorDashboard() {
                         {questions.map((q, i) => (
                             <div key={i} className="glass rounded-lg p-4 space-y-2">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                    <span className={`chip ${q.type === 'mcq' ? 'bg-blue-500/15 border border-blue-400/40 text-blue-300' : q.type === 'essay' ? 'bg-purple-500/15 border border-purple-400/40 text-purple-300' : 'bg-orange-500/15 border border-orange-400/40 text-orange-300'}`}>{q.type}</span>
+                                    <span className={`chip ${q.type === 'mcq' ? 'bg-blue-500/15 border border-blue-400/40 text-blue-300' : q.type === 'essay' ? 'bg-pink-500/15 border border-pink-400/40 text-pink-300' : 'bg-orange-500/15 border border-orange-400/40 text-orange-300'}`}>{q.type}</span>
                                     <span className="text-xs text-slate-500">Question {i + 1}</span>
                                     <div className="ml-auto flex items-center gap-2">
                                         <label htmlFor={`q-${i}-points`} className="text-xs text-slate-400">Points</label>
@@ -145,8 +145,8 @@ export default function InstructorDashboard() {
                                         {q.optionsText.split(',').map(s => s.trim()).filter(Boolean).length > 0 && (
                                             <div className="flex flex-wrap gap-3">
                                                 {q.optionsText.split(',').map(s => s.trim()).filter(Boolean).map((opt, idx) => (
-                                                    <label key={idx} className="flex items-center gap-1.5 text-xs bg-white/5 border border-white/15 rounded-full px-3 py-1 cursor-pointer hover:border-indigo-400/50 transition-colors">
-                                                        <input type="checkbox" name={`q-${i}-correct`} value={idx} checked={q.correct.includes(idx)} onChange={() => updateQ(i, { correct: q.correct.includes(idx) ? q.correct.filter(x => x !== idx) : [...q.correct, idx] })} className="accent-indigo-500" />
+                                                    <label key={idx} className="flex items-center gap-1.5 text-xs bg-white/5 border border-white/15 rounded-full px-3 py-1 cursor-pointer hover:border-sky-400/50 transition-colors">
+                                                        <input type="checkbox" name={`q-${i}-correct`} value={idx} checked={q.correct.includes(idx)} onChange={() => updateQ(i, { correct: q.correct.includes(idx) ? q.correct.filter(x => x !== idx) : [...q.correct, idx] })} className="accent-sky-400" />
                                                         <span>{opt}</span>
                                                     </label>
                                                 ))}
@@ -161,7 +161,7 @@ export default function InstructorDashboard() {
 
                     <div className="flex gap-2 flex-wrap">
                         <button onClick={() => addQuestion('mcq')} className="btn-soft px-3 py-1.5 text-xs border-blue-400/30 text-blue-300">+ MCQ</button>
-                        <button onClick={() => addQuestion('essay')} className="btn-soft px-3 py-1.5 text-xs border-purple-400/30 text-purple-300">+ Essay</button>
+                        <button onClick={() => addQuestion('essay')} className="btn-soft px-3 py-1.5 text-xs border-pink-400/30 text-pink-300">+ Essay</button>
                         <button onClick={() => addQuestion('practical')} className="btn-soft px-3 py-1.5 text-xs border-orange-400/30 text-orange-300">+ Practical</button>
                     </div>
 
@@ -186,14 +186,14 @@ export default function InstructorDashboard() {
                                 <span className={`chip ${exam.status === 'published' ? 'bg-emerald-500/15 border border-emerald-400/40 text-emerald-300' : 'bg-white/5 border border-white/10 text-slate-400'}`}>
                                     {exam.status}
                                 </span>
-                                <span className={`chip ${exam.grades_released ? 'bg-indigo-500/15 border border-indigo-400/40 text-indigo-300' : 'bg-amber-500/10 border border-amber-400/30 text-amber-300'}`}>
+                                <span className={`chip ${exam.grades_released ? 'bg-sky-500/15 border border-sky-400/40 text-sky-300' : 'bg-amber-500/10 border border-amber-400/30 text-amber-300'}`}>
                                     {exam.grades_released ? 'grades released' : 'grades hidden'}
                                 </span>
                             </div>
                         </div>
                         <div className="flex gap-2 flex-wrap">
                             <Link to={`/instructor/exams/${exam.id}/gradebook`} className="btn-soft px-3 py-1.5 text-xs">Gradebook</Link>
-                            <button onClick={() => toggleRelease(exam)} className="btn-soft px-3 py-1.5 text-xs border-indigo-400/30 text-indigo-300">
+                            <button onClick={() => toggleRelease(exam)} className="btn-soft px-3 py-1.5 text-xs border-sky-400/30 text-sky-300">
                                 {exam.grades_released ? 'Hide grades' : 'Release grades'}
                             </button>
                             <button onClick={() => togglePublish(exam)} className={`px-3 py-1.5 rounded-lg text-xs font-medium text-white transition-all duration-200 ${exam.status === 'published'

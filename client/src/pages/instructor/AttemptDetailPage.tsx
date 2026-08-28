@@ -114,11 +114,11 @@ export default function AttemptDetailPage() {
 
     return (
         <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
-            <Link to={`/instructor/exams/${examId}/gradebook`} className="text-indigo-300 hover:text-indigo-200 hover:underline text-sm font-medium">← Back to gradebook</Link>
+            <Link to={`/instructor/exams/${examId}/gradebook`} className="text-sky-300 hover:text-sky-200 hover:underline text-sm font-medium">← Back to gradebook</Link>
 
             <div className="glass-strong glass-glow rounded-xl p-5 flex flex-wrap items-center justify-between gap-3">
                 <div className="min-w-0">
-                    <h1 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 to-violet-400 glow-text">{attempt.student_name}</h1>
+                    <h1 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-sky-300 to-cyan-300 glow-text">{attempt.student_name}</h1>
                     <p className="text-sm text-slate-400 break-words">{attempt.exam_title}</p>
                 </div>
                 <div className="text-right">

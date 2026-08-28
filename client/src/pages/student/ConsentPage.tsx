@@ -58,7 +58,7 @@ export default function ConsentPage() {
     return (
         <div className="max-w-2xl mx-auto p-4 sm:p-6">
             <div className="glass-strong glass-glow rounded-2xl p-5 sm:p-8">
-                <h1 className="text-2xl font-bold mb-1 bg-gradient-to-r from-indigo-300 to-violet-400 text-transparent bg-clip-text glow-text">Before you begin</h1>
+                <h1 className="text-2xl font-bold mb-1 bg-gradient-to-r from-sky-300 to-cyan-300 text-transparent bg-clip-text glow-text">Before you begin</h1>
                 <p className="text-slate-400 text-sm mb-6">{exam ? exam.title : ''}</p>
 
                 <h2 className="font-semibold mb-2">What is monitored during this exam</h2>
@@ -68,7 +68,7 @@ export default function ConsentPage() {
                     <li><strong className="text-slate-100">Paste blocking:</strong> pasting and right-click are disabled in answer fields.</li>
                     <li>
                         <label htmlFor="webcam-consent" className="inline-flex items-start gap-2 cursor-pointer mt-1">
-                            <input id="webcam-consent" name="webcamConsent" type="checkbox" checked={!!webcamOk} onChange={e => setWebcamOk(e.target.checked)} className="mt-0.5 accent-indigo-500" />
+                            <input id="webcam-consent" name="webcamConsent" type="checkbox" checked={!!webcamOk} onChange={e => setWebcamOk(e.target.checked)} className="mt-0.5 accent-sky-400" />
                             <span>
                                 <strong className="text-slate-100">Periodic webcam snapshots + face monitoring (optional):</strong> allow camera access and a still photo will be taken roughly every 60 seconds. An on-device AI detector also checks that your face stays in frame and looks toward the screen, and that no other person or phone appears in view. Your instructor can review all of this afterwards.
                                 {webcamOk === false && <span className="block text-xs text-amber-300 mt-0.5">Camera was not granted — you can continue without snapshots.</span>}
@@ -77,7 +77,7 @@ export default function ConsentPage() {
                     </li>
                     <li>
                         <label htmlFor="audio-consent" className="inline-flex items-start gap-2 cursor-pointer mt-1">
-                            <input id="audio-consent" name="audioConsent" type="checkbox" checked={!!audioOk} onChange={e => setAudioOk(e.target.checked)} className="mt-0.5 accent-indigo-500" />
+                            <input id="audio-consent" name="audioConsent" type="checkbox" checked={!!audioOk} onChange={e => setAudioOk(e.target.checked)} className="mt-0.5 accent-sky-400" />
                             <span>
                                 <strong className="text-slate-100">Voice/noise monitoring (optional):</strong> allow microphone access so background voices or loud noise are detected. Audio is analysed locally and never recorded.
                                 {audioOk === false && <span className="block text-xs text-amber-300 mt-0.5">Microphone was not granted — you can continue without voice detection.</span>}
