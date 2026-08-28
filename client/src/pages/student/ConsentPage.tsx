@@ -7,6 +7,7 @@ export default function ConsentPage() {
     const navigate = useNavigate();
     const [exam, setExam] = useState<any>(null);
     const [webcamOk, setWebcamOk] = useState<boolean | null>(null);
+    const [audioOk, setAudioOk] = useState<boolean | null>(null);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
 
@@ -30,8 +31,15 @@ export default function ConsentPage() {
                     setWebcamOk(false); // denied: continue without snapshots
                 }
             }
+            if (audioOk) {
+                try {
+                    await navigator.mediaDevices.getUserMedia({ audio: true });
+                } catch {
+                    setAudioOk(false); // denied: continue without voice detection
+                }
+            }
             const data = await api<{ attemptId: number }>(`/api/attempts/${examId}/start`, { method: 'POST' });
-            navigate(`/exam/${data.attemptId}/take/${examId}`, { state: { webcamEnabled: !!webcamOk } });
+            navigate(`/exam/${data.attemptId}/take/${examId}`, { state: { webcamEnabled: !!webcamOk, audioEnabled: !!audioOk } });
         } catch (err: any) {
             setError(err.message || 'Could not start the exam');
         } finally {
@@ -58,12 +66,21 @@ export default function ConsentPage() {
                     <li><strong>Tab switching:</strong> every time you leave this tab or window, it is recorded with a timestamp.</li>
                     <li><strong>Full-screen exits:</strong> we ask you to stay in full-screen; leaving full-screen is recorded.</li>
                     <li><strong>Paste blocking:</strong> pasting and right-click are disabled in answer fields.</li>
-                    <li>
-                        <label className="inline-flex items-start gap-2 cursor-pointer mt-1">
+<li>
+                        <label htmlFor="webcam-consent" className="inline-flex items-start gap-2 cursor-pointer mt-1">
                             <input id="webcam-consent" name="webcamConsent" type="checkbox" checked={!!webcamOk} onChange={e => setWebcamOk(e.target.checked)} className="mt-0.5" />
                             <span>
-                                <strong>Periodic webcam snapshots (optional):</strong> allow camera access and a still photo will be taken roughly every 60 seconds during the exam. Your instructor can view these afterwards.
+                                <strong>Periodic webcam snapshots + face monitoring (optional):</strong> allow camera access and a still photo will be taken roughly every 60 seconds. An on-device AI detector also checks that your face stays in frame and looks toward the screen, and that no other person or phone appears in view. Your instructor can review all of this afterwards.
                                 {webcamOk === false && <span className="block text-xs text-amber-600 mt-0.5">Camera was not granted — you can continue without snapshots.</span>}
+                            </span>
+                        </label>
+                    </li>
+                    <li>
+                        <label htmlFor="audio-consent" className="inline-flex items-start gap-2 cursor-pointer mt-1">
+                            <input id="audio-consent" name="audioConsent" type="checkbox" checked={!!audioOk} onChange={e => setAudioOk(e.target.checked)} className="mt-0.5" />
+                            <span>
+                                <strong>Voice/noise monitoring (optional):</strong> allow microphone access so background voices or loud noise are detected. Audio is analysed locally and never recorded.
+                                {audioOk === false && <span className="block text-xs text-amber-600 mt-0.5">Microphone was not granted — you can continue without voice detection.</span>}
                             </span>
                         </label>
                     </li>

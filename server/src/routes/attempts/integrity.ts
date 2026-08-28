@@ -7,6 +7,8 @@ const router = Router();
 
 const MAX_TAB_SWITCHES = 5;
 const MAX_FULLSCREEN_EXIT_SECONDS = 30;
+const MAX_FACE_MISSING_SECONDS = 90;
+const MAX_MULTI_FACE_SECONDS = 30;
 
 async function evaluateRules(attemptId: string | number): Promise<{ triggered: boolean; rule?: string }> {
     const attempt = await pool.query('SELECT status FROM exam_attempts WHERE id = $1', [attemptId]);
@@ -22,15 +24,30 @@ async function evaluateRules(attemptId: string | number): Promise<{ triggered: b
         return { triggered: true, rule: `More than ${MAX_TAB_SWITCHES} tab switches` };
     }
 
-    let fullscreenSeconds = 0;
-    for (const e of rows) {
-        if (e.event_type === 'fullscreen_exit' && e.metadata) {
-            const meta = typeof e.metadata === 'string' ? JSON.parse(e.metadata) : e.metadata;
-            fullscreenSeconds += Number(meta.seconds) || 0;
+    function sumSeconds(eventType: string): number {
+        let total = 0;
+        for (const e of rows) {
+            if (e.event_type === eventType && e.metadata) {
+                const meta = typeof e.metadata === 'string' ? JSON.parse(e.metadata) : e.metadata;
+                total += Number(meta.seconds) || 0;
+            }
         }
+        return total;
     }
+
+    const fullscreenSeconds = sumSeconds('fullscreen_exit');
     if (fullscreenSeconds > MAX_FULLSCREEN_EXIT_SECONDS) {
         return { triggered: true, rule: `Full-screen exited for more than ${MAX_FULLSCREEN_EXIT_SECONDS} seconds in total` };
+    }
+
+    const faceMissingSeconds = sumSeconds('face_missing');
+    if (faceMissingSeconds > MAX_FACE_MISSING_SECONDS) {
+        return { triggered: true, rule: `No face detected for more than ${MAX_FACE_MISSING_SECONDS} seconds in total` };
+    }
+
+    const multiFaceSeconds = sumSeconds('multi_face');
+    if (multiFaceSeconds > MAX_MULTI_FACE_SECONDS) {
+        return { triggered: true, rule: `More than one person detected for more than ${MAX_MULTI_FACE_SECONDS} seconds in total` };
     }
 
     return { triggered: false };
@@ -38,7 +55,7 @@ async function evaluateRules(attemptId: string | number): Promise<{ triggered: b
 
 router.post('/:attemptId/event', authenticate, async (req: any, res: Response) => {
     const { eventType, metadata } = req.body;
-    const validEvents = ['tab_switch', 'fullscreen_exit', 'paste_blocked'];
+    const validEvents = ['tab_switch', 'fullscreen_exit', 'paste_blocked', 'face_missing', 'multi_face', 'phone_detected', 'voice_detected', 'gaze_away'];
     if (!validEvents.includes(eventType)) {
         return res.status(400).json({ error: 'Invalid event type' });
     }

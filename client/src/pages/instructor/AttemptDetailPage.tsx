@@ -88,6 +88,30 @@ export default function AttemptDetailPage() {
 
     const { attempt } = data;
 
+    const eventStyles: Record<string, string> = {
+        auto_submit_triggered: 'border-red-300 bg-red-50 text-red-800 font-medium',
+        face_missing: 'border-red-300 bg-red-50 text-red-800',
+        multi_face: 'border-red-300 bg-red-50 text-red-800',
+        phone_detected: 'border-amber-300 bg-amber-50 text-amber-800',
+        voice_detected: 'border-amber-300 bg-amber-50 text-amber-800',
+        gaze_away: 'border-amber-300 bg-amber-50 text-amber-800',
+        tab_switch: 'border-orange-200 bg-orange-50 text-orange-800',
+        fullscreen_exit: 'border-orange-200 bg-orange-50 text-orange-800',
+        paste_blocked: 'border-slate-200 bg-white'
+    };
+    const eventLabels: Record<string, string> = {
+        auto_submit_triggered: 'Auto-submitted (rule)',
+        face_missing: 'No face detected',
+        multi_face: 'Multiple faces',
+        phone_detected: 'Phone / media device',
+        voice_detected: 'Voice / loud noise',
+        gaze_away: 'Looked away from screen',
+        tab_switch: 'Tab switch',
+        fullscreen_exit: 'Full-screen exit',
+        paste_blocked: 'Paste blocked'
+    };
+    const flagEventTypes: Array<keyof typeof eventLabels> = ['auto_submit_triggered', 'face_missing', 'multi_face', 'phone_detected', 'voice_detected', 'gaze_away'];
+
     return (
         <div className="max-w-4xl mx-auto p-6 space-y-6">
             <Link to={`/instructor/exams/${examId}/gradebook`} className="text-indigo-600 hover:underline text-sm font-medium">← Back to gradebook</Link>
@@ -178,20 +202,27 @@ export default function AttemptDetailPage() {
                 {data.events.length === 0 ? (
                     <p className="text-sm text-slate-400">No integrity events recorded.</p>
                 ) : (
-                    <div className="space-y-1">
-                        {data.events.map(ev => {
-                            const flagged = ev.event_type === 'auto_submit_triggered';
-                            return (
-                                <div key={ev.id} className={`rounded-lg border px-3 py-2 text-sm flex items-center justify-between ${flagged ? 'border-red-300 bg-red-50 text-red-800 font-medium' : 'border-slate-200 bg-white'}`}>
-                                    <span>{ev.event_type.replace(/_/g, ' ')}</span>
+                    <>
+                        <div className="flex flex-wrap gap-2 mb-3">
+                            {flagEventTypes.map(t => {
+                                const n = data.events.filter(e => e.event_type === t).length;
+                                if (!n) return null;
+                                const cls = (eventStyles[t] || '').includes('amber') ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700';
+                                return <span key={t} className={`px-2 py-0.5 rounded-full text-xs font-medium ${cls}`}>{eventLabels[t]}: {n}</span>;
+                            })}
+                        </div>
+                        <div className="space-y-1">
+                            {data.events.map(ev => (
+                                <div key={ev.id} className={`rounded-lg border px-3 py-2 text-sm flex items-center justify-between ${eventStyles[ev.event_type] || 'border-slate-200 bg-white'}`}>
+                                    <span>{eventLabels[ev.event_type] || ev.event_type.replace(/_/g, ' ')}</span>
                                     <span className="text-xs opacity-70">
                                         {ev.metadata && Object.keys(ev.metadata).length > 0 ? JSON.stringify(ev.metadata) : ''}
                                         {'  '}{new Date(ev.timestamp).toLocaleTimeString()}
                                     </span>
                                 </div>
-                            );
-                        })}
-                    </div>
+                            ))}
+                        </div>
+                    </>
                 )}
             </section>
 

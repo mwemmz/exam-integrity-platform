@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../../lib/api';
+import { startProctoring } from '../../lib/proctor';
 
 interface Question {
     id: number;
@@ -29,6 +30,7 @@ export default function ExamPage() {
     const navigate = useNavigate();
     const location = useLocation();
     const webcamEnabled = !!(location.state as { webcamEnabled?: boolean } | null)?.webcamEnabled;
+    const audioEnabled = !!(location.state as { audioEnabled?: boolean } | null)?.audioEnabled;
 
     const [questions, setQuestions] = useState<Question[]>([]);
     const [answers, setAnswers] = useState<Record<number, string>>({});
@@ -37,6 +39,7 @@ export default function ExamPage() {
     const [remaining, setRemaining] = useState(0);
     const [error, setError] = useState('');
     const [submitting, setSubmitting] = useState(false);
+    const [proctorStatus, setProctorStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
 
     const answersRef = useRef(answers);
     const dirtyRef = useRef<Set<number>>(new Set());
@@ -183,40 +186,61 @@ export default function ExamPage() {
     }, [logEvent]);
 
     useEffect(() => {
-        if (!webcamEnabled) return;
-        let stream: MediaStream | null = null;
+        if (!webcamEnabled && !audioEnabled) return;
         let cancelled = false;
-        const video = document.createElement('video');
-        video.muted = true;
-        navigator.mediaDevices.getUserMedia({ video: true })
-            .then(s => {
-                if (cancelled) { s.getTracks().forEach(t => t.stop()); return undefined; }
-                stream = s;
-                video.srcObject = s;
-                return video.play().catch(() => {});
-            })
-            .catch(() => {});
-        const iv = setInterval(async () => {
-            if (!stream || !video.videoWidth) return;
-            const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            canvas.getContext('2d')?.drawImage(video, 0, 0);
-            try {
-                await api(`/api/snapshots/${attemptId}/snapshot`, {
-                    method: 'POST',
-                    body: { imageBase64: canvas.toDataURL('image/jpeg', 0.6) }
+        let mediaStream: MediaStream | null = null;
+        let stopProctor: (() => void) | null = null;
+        let snapIv: ReturnType<typeof setInterval> | null = null;
+        setProctorStatus('loading');
+
+        navigator.mediaDevices.getUserMedia({ video: !!webcamEnabled, audio: !!audioEnabled })
+            .then(async s => {
+                if (cancelled) { s.getTracks().forEach(t => t.stop()); return; }
+                mediaStream = s;
+                const video = document.createElement('video');
+                video.muted = true;
+                video.playsInline = true;
+                if (webcamEnabled) {
+                    video.srcObject = s;
+                    await video.play().catch(() => {});
+                }
+                stopProctor = await startProctoring({
+                    videoStream: s,
+                    audioStream: audioEnabled ? s : undefined,
+                    onFlag: flag => void logEvent(flag.type, flag.metadata),
+                    onError: () => { /* keep monitoring degradable */ }
                 });
-            } catch {
-                // ignore snapshot upload failures
-            }
-        }, 60000);
+                if (cancelled) return;
+                setProctorStatus('ready');
+                if (webcamEnabled) {
+                    snapIv = setInterval(async () => {
+                        if (!video.videoWidth) return;
+                        const canvas = document.createElement('canvas');
+                        canvas.width = video.videoWidth;
+                        canvas.height = video.videoHeight;
+                        canvas.getContext('2d')?.drawImage(video, 0, 0);
+                        try {
+                            await api(`/api/snapshots/${attemptId}/snapshot`, {
+                                method: 'POST',
+                                body: { imageBase64: canvas.toDataURL('image/jpeg', 0.6) }
+                            });
+                        } catch {
+                            // ignore snapshot upload failures
+                        }
+                    }, 60000);
+                }
+            })
+            .catch(() => {
+                if (!cancelled) setProctorStatus('error');
+            });
+
         return () => {
             cancelled = true;
-            clearInterval(iv);
-            stream?.getTracks().forEach(t => t.stop());
+            stopProctor?.();
+            if (snapIv) clearInterval(snapIv);
+            mediaStream?.getTracks().forEach(t => t.stop());
         };
-    }, [webcamEnabled, attemptId]);
+    }, [webcamEnabled, audioEnabled, attemptId, logEvent]);
 
     const updateAnswer = (qid: number, value: string) => {
         setAnswers(prev => ({ ...prev, [qid]: value }));
@@ -267,6 +291,17 @@ export default function ExamPage() {
             <div className="sticky top-0 z-10 bg-indigo-700 text-white px-6 py-3 flex items-center justify-between shadow">
                 <div className="text-sm">
                     <span className="font-semibold">Exam in progress</span>
+                    {proctorStatus !== 'idle' && (
+                        <span className={`ml-2 text-[11px] px-2 py-0.5 rounded-full font-medium align-middle ${
+                            proctorStatus === 'ready'
+                                ? 'bg-emerald-900/60 text-emerald-200'
+                                : proctorStatus === 'loading'
+                                    ? 'bg-amber-900/50 text-amber-200'
+                                    : 'bg-slate-800/60 text-slate-300'
+                        }`}>
+                            {proctorStatus === 'ready' ? 'AI monitoring active' : proctorStatus === 'loading' ? 'Starting AI monitoring…' : 'AI monitoring unavailable'}
+                        </span>
+                    )}
                     <span className="ml-2 text-indigo-200">Tab switches and full-screen exits are being recorded</span>
                 </div>
                 <div className={`px-4 py-1.5 rounded-lg font-mono font-bold text-lg ${remaining <= 60 ? 'bg-red-600' : 'bg-indigo-900/60'}`}>
