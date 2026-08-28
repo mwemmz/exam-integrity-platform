@@ -113,7 +113,7 @@ export default function AttemptDetailPage() {
     const flagEventTypes: Array<keyof typeof eventLabels> = ['auto_submit_triggered', 'face_missing', 'multi_face', 'phone_detected', 'voice_detected', 'gaze_away'];
 
     return (
-        <div className="max-w-4xl mx-auto p-6 space-y-6">
+        <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
             <Link to={`/instructor/exams/${examId}/gradebook`} className="text-indigo-600 hover:underline text-sm font-medium">← Back to gradebook</Link>
 
             <div className="bg-white border border-slate-200 rounded-xl p-5 flex flex-wrap items-center justify-between gap-3">
@@ -161,8 +161,8 @@ export default function AttemptDetailPage() {
                                 <pre className="text-xs bg-slate-50 border border-slate-100 rounded-lg p-3 whitespace-pre-wrap font-sans text-slate-700 mb-2 max-h-60 overflow-y-auto">
                                     {a.response_text || '(no answer)'}
                                 </pre>
-                                <div className="flex items-end gap-2">
-                                    <div>
+                                <div className="flex flex-col sm:flex-row sm:items-end gap-2">
+                                    <div className="sm:w-24">
                                         <label htmlFor={`score-${a.question_id}`} className="block text-xs text-slate-500 mb-1">Score (max {a.points})</label>
                                         <input
                                             id={`score-${a.question_id}`}
@@ -172,7 +172,7 @@ export default function AttemptDetailPage() {
                                             max={a.points}
                                             value={grades[a.question_id]?.score ?? ''}
                                             onChange={e => setGrades(g => ({ ...g, [a.question_id]: { ...g[a.question_id], score: e.target.value } }))}
-                                            className="w-24 border border-slate-300 rounded-lg p-2 text-sm"
+                                            className="w-full border border-slate-300 rounded-lg p-2 text-sm"
                                         />
                                     </div>
                                     <div className="flex-1">
@@ -186,7 +186,7 @@ export default function AttemptDetailPage() {
                                             className="w-full border border-slate-300 rounded-lg p-2 text-sm"
                                         />
                                     </div>
-                                    <button onClick={() => void saveGrade(a.question_id)} className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700">Save</button>
+                                    <button onClick={() => void saveGrade(a.question_id)} className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 self-start sm:self-auto">Save</button>
                                 </div>
                                 {a.feedback && !grades[a.question_id]?.feedback && (
                                     <p className="text-xs text-slate-400 mt-1 italic">Previous feedback: “{a.feedback}”</p>
@@ -213,9 +213,9 @@ export default function AttemptDetailPage() {
                         </div>
                         <div className="space-y-1">
                             {data.events.map(ev => (
-                                <div key={ev.id} className={`rounded-lg border px-3 py-2 text-sm flex items-center justify-between ${eventStyles[ev.event_type] || 'border-slate-200 bg-white'}`}>
-                                    <span>{eventLabels[ev.event_type] || ev.event_type.replace(/_/g, ' ')}</span>
-                                    <span className="text-xs opacity-70">
+                                <div key={ev.id} className={`rounded-lg border px-3 py-2 text-sm flex flex-wrap items-center justify-between gap-x-3 gap-y-1 ${eventStyles[ev.event_type] || 'border-slate-200 bg-white'}`}>
+                                    <span className="min-w-0">{eventLabels[ev.event_type] || ev.event_type.replace(/_/g, ' ')}</span>
+                                    <span className="text-xs opacity-70 text-right ml-auto">
                                         {ev.metadata && Object.keys(ev.metadata).length > 0 ? JSON.stringify(ev.metadata) : ''}
                                         {'  '}{new Date(ev.timestamp).toLocaleTimeString()}
                                     </span>

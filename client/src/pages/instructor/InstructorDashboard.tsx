@@ -104,7 +104,7 @@ export default function InstructorDashboard() {
     };
 
     return (
-        <div className="max-w-4xl mx-auto p-6 space-y-6">
+        <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold">Instructor Dashboard</h1>
                 <button
@@ -120,7 +120,7 @@ export default function InstructorDashboard() {
             {showForm && (
                 <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-4">
                     <h2 className="font-semibold">Create Exam</h2>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <input id="exam-title" name="title" aria-label="Exam title" value={title} onChange={e => setTitle(e.target.value)} placeholder="Exam title" className="col-span-2 border border-slate-300 rounded-lg p-2 text-sm" />
                         <input id="exam-time-limit" name="timeLimitMinutes" type="number" min="1" aria-label="Time limit in minutes" value={timeLimit} onChange={e => setTimeLimit(e.target.value)} placeholder="Time limit (min)" className="border border-slate-300 rounded-lg p-2 text-sm" />
                         <textarea id="exam-description" name="description" aria-label="Exam description" value={description} onChange={e => setDescription(e.target.value)} placeholder="Instructions / description" rows={2} className="col-span-3 border border-slate-300 rounded-lg p-2 text-sm" />

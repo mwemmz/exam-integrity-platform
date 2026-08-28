@@ -288,8 +288,8 @@ export default function ExamPage() {
 
     return (
         <div onContextMenu={e => e.preventDefault()} className="pb-28">
-            <div className="sticky top-0 z-10 bg-indigo-700 text-white px-6 py-3 flex items-center justify-between shadow">
-                <div className="text-sm">
+            <div className="sticky top-0 z-10 bg-indigo-700 text-white px-3 sm:px-6 py-3 flex items-center justify-between gap-2 shadow">
+                <div className="text-sm min-w-0">
                     <span className="font-semibold">Exam in progress</span>
                     {proctorStatus !== 'idle' && (
                         <span className={`ml-2 text-[11px] px-2 py-0.5 rounded-full font-medium align-middle ${
@@ -302,14 +302,14 @@ export default function ExamPage() {
                             {proctorStatus === 'ready' ? 'AI monitoring active' : proctorStatus === 'loading' ? 'Starting AI monitoring…' : 'AI monitoring unavailable'}
                         </span>
                     )}
-                    <span className="ml-2 text-indigo-200">Tab switches and full-screen exits are being recorded</span>
+                    <span className="ml-2 text-indigo-200 hidden md:inline">Tab switches and full-screen exits are being recorded</span>
                 </div>
-                <div className={`px-4 py-1.5 rounded-lg font-mono font-bold text-lg ${remaining <= 60 ? 'bg-red-600' : 'bg-indigo-900/60'}`}>
+                <div className={`px-3 py-1.5 rounded-lg font-mono font-bold text-base sm:text-lg shrink-0 ${remaining <= 60 ? 'bg-red-600' : 'bg-indigo-900/60'}`}>
                     {deadlineRef.current ? fmt(remaining) : '--:--'}
                 </div>
             </div>
 
-            <div className="max-w-3xl mx-auto p-6 space-y-5">
+            <div className="max-w-3xl mx-auto p-4 sm:p-6 space-y-5">
                 {error && <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</div>}
 
                 {questions.map((q, i) => (
@@ -353,12 +353,12 @@ export default function ExamPage() {
                 ))}
             </div>
 
-            <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-6 py-3 flex items-center justify-between">
-                <span className="text-xs text-slate-400">Answers auto-save every 15 seconds</span>
+            <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-4 sm:px-6 py-3 flex items-center justify-between gap-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+                <span className="text-[11px] sm:text-xs text-slate-400 hidden sm:block">Answers auto-save every 15 seconds</span>
                 <button
                     onClick={() => { if (window.confirm('Submit your exam for grading? You cannot change answers afterwards.')) void submitExam(); }}
                     disabled={submitting}
-                    className="bg-emerald-600 text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-emerald-700 disabled:opacity-50"
+                    className="flex-1 sm:flex-none bg-emerald-600 text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-emerald-700 disabled:opacity-50"
                 >
                     {submitting ? 'Submitting…' : 'Submit Exam'}
                 </button>

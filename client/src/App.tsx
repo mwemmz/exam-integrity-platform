@@ -32,11 +32,11 @@ export default function App() {
         <BrowserRouter>
             <div className="min-h-screen bg-slate-100 text-slate-900">
                 {authed && (
-                    <header className="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between">
-                        <span className="font-bold text-indigo-700">Exam Integrity Platform</span>
-                        <div className="flex items-center gap-4 text-sm">
-                            <span className="text-slate-500 capitalize">{user!.role}</span>
-                            <button onClick={logout} className="px-3 py-1 rounded bg-slate-800 text-white hover:bg-slate-700">
+                    <header className="bg-white border-b border-slate-200 px-4 sm:px-6 py-3 flex items-center justify-between gap-2">
+                        <span className="font-bold text-indigo-700 text-sm sm:text-base truncate">Exam Integrity Platform</span>
+                        <div className="flex items-center gap-2 sm:gap-4 text-sm shrink-0">
+                            <span className="text-slate-500 capitalize hidden sm:inline">{user!.role}</span>
+                            <button onClick={logout} className="px-3 py-1.5 rounded bg-slate-800 text-white hover:bg-slate-700 text-xs sm:text-sm">
                                 Log out
                             </button>
                         </div>

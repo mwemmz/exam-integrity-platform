@@ -26,7 +26,7 @@ export default function StudentDashboard() {
     if (loading) return <div className="p-8 text-slate-500">Loading exams…</div>;
 
     return (
-        <div className="max-w-3xl mx-auto p-6">
+        <div className="max-w-3xl mx-auto p-4 sm:p-6">
             <h1 className="text-2xl font-bold mb-1">My Exams</h1>
             <p className="text-sm text-slate-500 mb-6">Exams available to you right now.</p>
 
@@ -40,15 +40,15 @@ export default function StudentDashboard() {
 
             <div className="space-y-3">
                 {exams.map(exam => (
-                    <div key={exam.id} className="bg-white border border-slate-200 rounded-xl p-5 flex items-center justify-between gap-4">
-                        <div>
-                            <div className="font-semibold">{exam.title}</div>
+                    <div key={exam.id} className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                            <div className="font-semibold break-words">{exam.title}</div>
                             {exam.description && <div className="text-sm text-slate-500 mt-0.5">{exam.description}</div>}
                             <div className="text-xs text-slate-400 mt-1">Time limit: {exam.time_limit_minutes} minutes</div>
                         </div>
                         <Link
                             to={`/exam/${exam.id}/consent`}
-                            className="shrink-0 bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700"
+                            className="shrink-0 bg-indigo-600 text-white px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium hover:bg-indigo-700"
                         >
                             Start Exam
                         </Link>
