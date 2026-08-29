@@ -86,8 +86,19 @@ export default function LoginPage({ onAuthed }: { onAuthed: () => void }) {
                     {mode === 'login' ? "Don't have an account? Register" : 'Already have an account? Log in'}
                 </button>
 
-                <p className="mt-6 text-xs text-slate-500 text-center">
-                    Demo: instructor@demo.com / student@demo.com — password123
+                <div className="mt-6 pt-4 border-t border-white/10">
+                    <p className="text-[0.7rem] uppercase tracking-wider text-sky-300/80 mb-2.5 font-semibold">How the system works</p>
+                    <ul className="space-y-1.5 text-xs text-slate-400">
+                        <li><span className="chip bg-sky-400/10 text-sky-300 mr-2">AI</span>Live face detection — presence, multiple faces, gaze tracking</li>
+                        <li><span className="chip bg-sky-400/10 text-sky-300 mr-2">Devices</span>Phone and voice detection during the exam</li>
+                        <li><span className="chip bg-sky-400/10 text-sky-300 mr-2">Timeline</span>Every integrity event lands in a reviewable timeline</li>
+                        <li><span className="chip bg-sky-400/10 text-sky-300 mr-2">Rules</span>Violation rules can auto-submit attempts</li>
+                        <li><span className="chip bg-sky-400/10 text-sky-300 mr-2">Offline</span>Answers are saved safely on network drop and sync on reconnect</li>
+                    </ul>
+                </div>
+
+                <p className="mt-4 text-xs text-slate-500 text-center">
+                    Demo logins: instructor@demo.com · student@demo.com · admin@demo.com — password123
                 </p>
             </div>
         </div>
