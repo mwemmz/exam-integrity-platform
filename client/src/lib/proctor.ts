@@ -17,40 +17,16 @@ export interface ProctorOptions {
 const VISION_MODULE = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/vision_bundle.mjs';
 const VISION_CDN = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm';
 const FACE_MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite';
+const OBJECT_MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/1/efficientdet_lite0.tflite';
 
-function loadScript(src: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-        const el = document.createElement('script');
-        el.src = src;
-        el.async = true;
-        el.onload = () => resolve();
-        el.onerror = () => reject(new Error('Failed to load AI monitoring library'));
-        document.head.appendChild(el);
-    });
-}
-
-const loadVision = (() => {
-    let singleton: Promise<any> | null = null;
+const loadVisionBundle = (() => {
+    let singleton: Promise<{ fileset: any; FaceDetector: any; ObjectDetector: any }> | null = null;
     return () => {
         if (!singleton) {
             singleton = (async () => {
                 const vision = await import(/* @vite-ignore */ VISION_MODULE);
                 const fileset = await vision.FilesetResolver.forVisionTasks(VISION_CDN);
-                const makeDetector = (delegate: 'GPU' | 'CPU') =>
-                    vision.FaceDetector.createFromOptions(fileset, {
-                        baseOptions: {
-                            modelAssetPath: FACE_MODEL_URL,
-                            delegate
-                        },
-                        runningMode: 'VIDEO',
-                        numFaces: 10,
-                        minDetectionConfidence: 0.5
-                    });
-                try {
-                    return await makeDetector('GPU');
-                } catch {
-                    return await makeDetector('CPU');
-                }
+                return { fileset, FaceDetector: vision.FaceDetector, ObjectDetector: vision.ObjectDetector };
             })().catch(err => {
                 singleton = null;
                 throw err;
@@ -60,23 +36,37 @@ const loadVision = (() => {
     };
 })();
 
-const loadObjectDetection = (() => {
-    let singleton: Promise<any> | null = null;
-    return () => {
-        if (!singleton) {
-            singleton = (async () => {
-                await loadScript('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js');
-                await loadScript('https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js');
-                const w = window as any;
-                return w.cocoSsd.load({ base: 'lite_mobilenet_v2' });
-            })().catch(err => {
-                singleton = null;
-                throw err;
-            });
-        }
-        return singleton;
-    };
-})();
+async function loadFaceDetector(): Promise<any> {
+    const { FaceDetector, fileset } = await loadVisionBundle();
+    const make = (delegate: 'GPU' | 'CPU') =>
+        FaceDetector.createFromOptions(fileset, {
+            baseOptions: { modelAssetPath: FACE_MODEL_URL, delegate },
+            runningMode: 'VIDEO',
+            numFaces: 10,
+            minDetectionConfidence: 0.5
+        });
+    try {
+        return await make('GPU');
+    } catch {
+        return await make('CPU');
+    }
+}
+
+async function loadObjectDetector(): Promise<any> {
+    const { ObjectDetector, fileset } = await loadVisionBundle();
+    const make = (delegate: 'GPU' | 'CPU') =>
+        ObjectDetector.createFromOptions(fileset, {
+            baseOptions: { modelAssetPath: OBJECT_MODEL_URL, delegate },
+            runningMode: 'VIDEO',
+            scoreThreshold: 0.45,
+            maxResults: 5
+        });
+    try {
+        return await make('GPU');
+    } catch {
+        return await make('CPU');
+    }
+}
 
 const SUSPICIOUS_CLASSES = new Set(['cell phone', 'remote']);
 
@@ -125,7 +115,7 @@ export async function startProctoring(options: ProctorOptions): Promise<() => vo
         const timer = setInterval(async () => {
             if (disposed.value) return;
             try {
-                faceDetector = faceDetector || await loadVision();
+                faceDetector = faceDetector || await loadFaceDetector();
                 if (!monitorVideo.videoWidth) return;
                 const result = await faceDetector.detectForVideo(monitorVideo, performance.now());
                 const detections: any[] = result.detections || [];
@@ -173,12 +163,16 @@ export async function startProctoring(options: ProctorOptions): Promise<() => vo
         const timer = setInterval(async () => {
             if (disposed.value) return;
             try {
-                objectModel = objectModel || await loadObjectDetection();
+                objectModel = objectModel || await loadObjectDetector();
                 if (!monitorVideo.videoWidth) return;
-                const predictions: any[] = await objectModel.detect(monitorVideo);
-                const phones = predictions.filter(p => SUSPICIOUS_CLASSES.has(p.class) && p.score > 0.45);
-                for (const p of phones.slice(0, 2)) {
-                    emit('phone_detected', { kind: p.class, confidence: Number(p.score.toFixed(2)) });
+                const result: any = await objectModel.detectForVideo(monitorVideo, performance.now());
+                const detections: any[] = result.detections || [];
+                for (const d of detections) {
+                    const cat = d.categories && d.categories[0];
+                    if (!cat || !cat.categoryName) continue;
+                    if (SUSPICIOUS_CLASSES.has(cat.categoryName)) {
+                        emit('phone_detected', { kind: cat.categoryName, confidence: Number(cat.score.toFixed(2)) });
+                    }
                 }
             } catch (err) {
                 options.onError?.(err instanceof Error ? err : new Error(String(err)));
