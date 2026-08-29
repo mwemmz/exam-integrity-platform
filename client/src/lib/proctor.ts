@@ -14,7 +14,9 @@ export interface ProctorOptions {
     objectIntervalMs?: number;
 }
 
-const VISION_CDN = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm';
+const VISION_MODULE = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/vision_bundle.mjs';
+const VISION_CDN = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm';
+const FACE_MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite';
 
 function loadScript(src: string): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -32,19 +34,23 @@ const loadVision = (() => {
     return () => {
         if (!singleton) {
             singleton = (async () => {
-                await loadScript(`${VISION_CDN}/vision_bundle.js`);
-                const w = window as any;
-                const vision = await w.FilesetResolver.forVisionTasks(VISION_CDN);
-                const detector = await w.FaceDetector.createFromOptions(vision, {
-                    baseOptions: {
-                        modelAssetPath: `${VISION_CDN}/blaze_face_short_range.tflite`,
-                        delegate: 'GPU'
-                    },
-                    runningMode: 'VIDEO',
-                    numFaces: 10,
-                    minDetectionConfidence: 0.5
-                });
-                return detector;
+                const vision = await import(/* @vite-ignore */ VISION_MODULE);
+                const fileset = await vision.FilesetResolver.forVisionTasks(VISION_CDN);
+                const makeDetector = (delegate: 'GPU' | 'CPU') =>
+                    vision.FaceDetector.createFromOptions(fileset, {
+                        baseOptions: {
+                            modelAssetPath: FACE_MODEL_URL,
+                            delegate
+                        },
+                        runningMode: 'VIDEO',
+                        numFaces: 10,
+                        minDetectionConfidence: 0.5
+                    });
+                try {
+                    return await makeDetector('GPU');
+                } catch {
+                    return await makeDetector('CPU');
+                }
             })().catch(err => {
                 singleton = null;
                 throw err;
@@ -137,9 +143,9 @@ export async function startProctoring(options: ProctorOptions): Promise<() => vo
                     const kp = detections[0].keypoints || [];
                     const byName: Record<string, any> = {};
                     for (const p of kp) byName[p.name] = p;
-                    const rightEye = byName.get('rightEye');
-                    const leftEye = byName.get('leftEye');
-                    const nose = byName.get('noseTip');
+                    const rightEye = byName['rightEye'];
+                    const leftEye = byName['leftEye'];
+                    const nose = byName['noseTip'];
                     if (rightEye && leftEye && nose) {
                         const eyeMidX = (rightEye.x + leftEye.x) / 2;
                         const eyeMidY = (rightEye.y + leftEye.y) / 2;
