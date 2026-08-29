@@ -2,6 +2,7 @@
 import { pool } from '../../db';
 
 import { authenticate } from '../../middleware/auth';
+import { broadcastAttemptUpdate } from '../../realtime';
 
 const router = Router();
 
@@ -76,8 +77,13 @@ router.post('/:attemptId/event', authenticate, async (req: any, res: Response) =
                 'INSERT INTO integrity_events (attempt_id, event_type, metadata) VALUES ($1, $2, $3)',
                 [req.params.attemptId, 'auto_submit_triggered', JSON.stringify({ rule: evaluation.rule })]
             );
+            const examRow = await pool.query('SELECT exam_id FROM exam_attempts WHERE id = $1', [req.params.attemptId]);
+            if (examRow.rows.length) await broadcastAttemptUpdate(examRow.rows[0].exam_id, req.params.attemptId);
             return res.status(200).json({ autoSubmitted: true, rule: evaluation.rule });
         }
+
+        const examRow = await pool.query('SELECT exam_id FROM exam_attempts WHERE id = $1', [req.params.attemptId]);
+        if (examRow.rows.length) await broadcastAttemptUpdate(examRow.rows[0].exam_id, req.params.attemptId);
 
         res.status(201).json({ message: 'Event logged', autoSubmitted: false });
     } catch (error) {

@@ -2,24 +2,52 @@
 import { pool } from '../../db';
 
 import { authenticate } from '../../middleware/auth';
+import { broadcastAttemptUpdate } from '../../realtime';
 
 const router = Router();
 
 router.post('/:examId/start', authenticate, async (req: any, res: Response) => {
     try {
         const existing = await pool.query(
-            "SELECT id FROM exam_attempts WHERE exam_id = $1 AND student_id = $2 AND status = 'in_progress'",
+            "SELECT id, end_time FROM exam_attempts WHERE exam_id = $1 AND student_id = $2 AND status = 'in_progress'",
             [req.params.examId, req.user.userId]
         );
         if (existing.rows.length) {
-            return res.json({ attemptId: existing.rows[0].id });
+            return res.json({ attemptId: existing.rows[0].id, endTime: existing.rows[0].end_time, resumed: true });
         }
-        const result = await pool.query(
-            'INSERT INTO exam_attempts (exam_id, student_id, status) VALUES ($1, $2, $3) RETURNING id',
-            [req.params.examId, req.user.userId, 'in_progress']
+
+        const exam = await pool.query('SELECT * FROM exams WHERE id = $1 AND published = TRUE', [req.params.examId]);
+        if (!exam.rows.length) return res.status(403).json({ error: 'Exam not available' });
+        const selected = exam.rows[0];
+
+        const acc = await pool.query(
+            'SELECT * FROM exam_accommodations WHERE exam_id = $1 AND student_id = $2',
+            [req.params.examId, req.user.userId]
         );
-        res.status(201).json({ attemptId: result.rows[0].id });
+        const accommodation = acc.rows[0] || {};
+
+        const limitMinutes = (selected.time_limit_minutes || 0) + (Number(accommodation.extra_time_minutes) || 0);
+        const endFromLimit = new Date(Date.now() + limitMinutes * 60000);
+        const customEnd = accommodation.custom_end_at ? new Date(accommodation.custom_end_at) : null;
+        const startWindowOpen = !accommodation.custom_start_at || new Date(accommodation.custom_start_at) <= new Date();
+        const endTime = customEnd && customEnd < endFromLimit ? customEnd : endFromLimit;
+
+        if (!startWindowOpen) {
+            return res.status(409).json({ error: 'Exam window has not opened for you yet' });
+        }
+        if (customEnd && new Date() >= customEnd) {
+            return res.status(409).json({ error: 'Your exam window has already closed' });
+        }
+
+        const result = await pool.query(
+            'INSERT INTO exam_attempts (exam_id, student_id, status, end_time) VALUES ($1, $2, $3, $4) RETURNING id',
+            [req.params.examId, req.user.userId, 'in_progress', endTime.toISOString()]
+        );
+        const attemptId = result.rows[0].id;
+        await broadcastAttemptUpdate(req.params.examId, attemptId);
+        res.status(201).json({ attemptId, endTime: endTime.toISOString(), timeLimitMinutes: limitMinutes, resumed: false });
     } catch (error) {
+        console.error(error);
         res.status(500).json({ error: 'Failed to start exam' });
     }
 });
@@ -27,7 +55,7 @@ router.post('/:examId/start', authenticate, async (req: any, res: Response) => {
 router.get('/:attemptId/status', authenticate, async (req: any, res: Response) => {
     try {
         const result = await pool.query(
-            `SELECT a.id, a.status, a.started_at, e.time_limit_minutes,
+            `SELECT a.id, a.status, a.started_at, a.end_time, e.time_limit_minutes,
                     (SELECT ie.metadata FROM integrity_events ie
                      WHERE ie.attempt_id = a.id AND ie.event_type = 'auto_submit_triggered'
                      ORDER BY ie."timestamp" DESC LIMIT 1) AS auto_submit_reason
@@ -119,6 +147,9 @@ router.post('/:attemptId/submit', authenticate, async (req: any, res: Response) 
             "UPDATE exam_attempts SET status = 'submitted', submitted_at = NOW(), total_score = $1 WHERE id = $2",
             [total.rows[0].total, req.params.attemptId]
         );
+
+        const examIdRow = await pool.query('SELECT exam_id FROM exam_attempts WHERE id = $1', [req.params.attemptId]);
+        if (examIdRow.rows.length) await broadcastAttemptUpdate(examIdRow.rows[0].exam_id, req.params.attemptId);
 
         res.json({ message: 'Exam submitted', totalScore: total.rows[0].total });
     } catch (error) {

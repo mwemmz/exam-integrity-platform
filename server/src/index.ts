@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
+import http from 'http';
 import authRoutes from './routes/auth';
 import examRoutes from './routes/exams';
 import attemptRoutes from './routes/attempts/attempts';
@@ -9,6 +10,7 @@ import snapshotRoutes from './routes/attempts/snapshots';
 import instructorRoutes from './routes/instructor';
 import instructorDetailsRoutes from './routes/instructor_details';
 import adminRoutes from './routes/admin';
+import { initRealtime } from './realtime';
 
 const app = express();
 app.use(cors());
@@ -32,6 +34,9 @@ app.use('/api/admin', adminRoutes);
 
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
+const server = http.createServer(app);
+initRealtime(server);
+
+server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });

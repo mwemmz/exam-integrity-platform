@@ -9,6 +9,9 @@ import ResultsPage from './pages/student/ResultsPage';
 import InstructorDashboard from './pages/instructor/InstructorDashboard';
 import GradebookPage from './pages/instructor/GradebookPage';
 import AttemptDetailPage from './pages/instructor/AttemptDetailPage';
+import LiveDashboard from './pages/instructor/LiveDashboard';
+import AnalyticsPage from './pages/instructor/AnalyticsPage';
+import ViolationsPage from './pages/instructor/ViolationsPage';
 import AdminDashboard from './pages/AdminDashboard';
 
 export default function App() {
@@ -56,6 +59,9 @@ export default function App() {
                     <Route path="/instructor" element={authed && user!.role === 'instructor' ? <InstructorDashboard /> : <Navigate to="/login" replace />} />
                     <Route path="/instructor/exams/:examId/gradebook" element={authed && user!.role === 'instructor' ? <GradebookPage /> : <Navigate to="/login" replace />} />
                     <Route path="/instructor/exams/:examId/attempts/:attemptId" element={authed && user!.role === 'instructor' ? <AttemptDetailPage /> : <Navigate to="/login" replace />} />
+                    <Route path="/instructor/exams/:examId/live" element={authed && user!.role === 'instructor' ? <LiveDashboard /> : <Navigate to="/login" replace />} />
+                    <Route path="/instructor/exams/:examId/analytics" element={authed && user!.role === 'instructor' ? <AnalyticsPage /> : <Navigate to="/login" replace />} />
+                    <Route path="/instructor/violations" element={authed && user!.role === 'instructor' ? <ViolationsPage /> : <Navigate to="/login" replace />} />
                     <Route path="/admin" element={authed && user!.role === 'admin' ? <AdminDashboard /> : <Navigate to="/login" replace />} />
                     <Route path="*" element={<Navigate to={home} replace />} />
                 </Routes>

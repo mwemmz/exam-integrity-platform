@@ -75,3 +75,68 @@ CREATE TABLE webcam_snapshots (
 );
 
 ALTER TABLE exams ADD COLUMN IF NOT EXISTS grades_released BOOLEAN DEFAULT FALSE;
+
+ALTER TABLE exams ADD COLUMN IF NOT EXISTS webcam_enabled BOOLEAN DEFAULT FALSE;
+ALTER TABLE exams ADD COLUMN IF NOT EXISTS audio_enabled BOOLEAN DEFAULT FALSE;
+
+CREATE TABLE IF NOT EXISTS question_bank (
+    id SERIAL PRIMARY KEY,
+    institution_id INTEGER REFERENCES institutions(id),
+    instructor_id INTEGER REFERENCES users(id),
+    type VARCHAR(50) NOT NULL, -- mcq, essay, practical
+    prompt TEXT NOT NULL,
+    points INTEGER NOT NULL,
+    options JSONB,
+    correct_answer JSONB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS student_groups (
+    id SERIAL PRIMARY KEY,
+    institution_id INTEGER REFERENCES institutions(id),
+    name VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS student_group_members (
+    group_id INTEGER REFERENCES student_groups(id) ON DELETE CASCADE,
+    student_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    PRIMARY KEY (group_id, student_id)
+);
+
+CREATE TABLE IF NOT EXISTS exam_assignments (
+    exam_id INTEGER REFERENCES exams(id) ON DELETE CASCADE,
+    group_id INTEGER REFERENCES student_groups(id) ON DELETE CASCADE,
+    PRIMARY KEY (exam_id, group_id)
+);
+
+CREATE TABLE IF NOT EXISTS exam_accommodations (
+    id SERIAL PRIMARY KEY,
+    exam_id INTEGER REFERENCES exams(id) ON DELETE CASCADE,
+    student_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    extra_time_minutes INTEGER DEFAULT 0,
+    custom_start_at TIMESTAMP,
+    custom_end_at TIMESTAMP,
+    UNIQUE (exam_id, student_id)
+);
+
+CREATE TABLE IF NOT EXISTS exam_messages (
+    id SERIAL PRIMARY KEY,
+    exam_id INTEGER REFERENCES exams(id) ON DELETE CASCADE,
+    instructor_id INTEGER REFERENCES users(id),
+    student_id INTEGER REFERENCES users(id),
+    message TEXT NOT NULL,
+    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS attempt_notes (
+    id SERIAL PRIMARY KEY,
+    attempt_id INTEGER REFERENCES exam_attempts(id) ON DELETE CASCADE,
+    instructor_id INTEGER REFERENCES users(id),
+    note_text TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE exam_attempts ADD COLUMN IF NOT EXISTS end_time TIMESTAMP;
+ALTER TABLE exam_attempts ADD COLUMN IF NOT EXISTS flagged_for_review BOOLEAN DEFAULT FALSE;
+ALTER TABLE exam_attempts ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMP;
+ALTER TABLE exam_attempts ADD COLUMN IF NOT EXISTS reviewed_by INTEGER REFERENCES users(id);

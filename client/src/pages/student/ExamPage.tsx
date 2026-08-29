@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { api } from '../../lib/api';
+import { api, getAuthUser } from '../../lib/api';
 import { startProctoring } from '../../lib/proctor';
 import { isOnline, loadAnswers, persistAnswers, clearAnswers, loadDirty, persistDirty, clearDirty } from '../../lib/offline';
+import { getSocket, joinExamRoom, leaveExamRoom } from '../../lib/socket';
+import type { ExamMessagePayload, TimeExtendedPayload, AttemptUpdatePayload } from '../../lib/socket';
 
 interface Question {
     id: number;
@@ -15,6 +17,7 @@ interface Question {
 interface StatusResp {
     status: string;
     started_at: string | null;
+    end_time: string | null;
     time_limit_minutes: number | null;
     auto_submit_reason?: { rule?: string } | null;
 }
@@ -43,6 +46,7 @@ export default function ExamPage() {
     const [online, setOnline] = useState(() => isOnline());
     const [submitError, setSubmitError] = useState('');
     const [proctorStatus, setProctorStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+    const [banner, setBanner] = useState('');
 
     const answersRef = useRef(answers);
     const dirtyRef = useRef<Set<number>>(loadDirty(attemptId));
@@ -133,9 +137,13 @@ export default function ExamPage() {
                     );
                     return;
                 }
-                if (st.started_at && st.time_limit_minutes) {
-                    deadlineRef.current = new Date(st.started_at).getTime() + st.time_limit_minutes * 60000;
-                    setRemaining(Math.max(0, Math.round((deadlineRef.current - Date.now()) / 1000)));
+                if (st.started_at) {
+                    const limitMs = (st.time_limit_minutes || 0) * 60000;
+                    const end = st.end_time
+                        ? new Date(st.end_time).getTime()
+                        : new Date(st.started_at).getTime() + limitMs;
+                    deadlineRef.current = end;
+                    setRemaining(Math.max(0, Math.round((end - Date.now()) / 1000)));
                 }
                 const qs = await api<Question[]>(`/api/exams/${examId}/questions`);
                 if (!cancelled) {
@@ -187,6 +195,43 @@ export default function ExamPage() {
             window.removeEventListener('offline', onConn);
         };
     }, []);
+
+    useEffect(() => {
+        const me = getAuthUser();
+        const socket = getSocket();
+        if (!me || !socket) return;
+        joinExamRoom(examId);
+        const onMsg = (p: ExamMessagePayload) => {
+            if (p.studentId !== null && p.studentId !== me.userId) return;
+            setBanner(p.message);
+        };
+        const onExtend = (p: TimeExtendedPayload) => {
+            if (p.attemptId !== Number(attemptId)) return;
+            const end = new Date(p.endTime).getTime();
+            deadlineRef.current = end;
+            setRemaining(Math.max(0, Math.round((end - Date.now()) / 1000)));
+        };
+        const onUpdate = (p: AttemptUpdatePayload) => {
+            if (p.attemptId !== Number(attemptId)) return;
+            if (p.reopened && p.endTime && phaseRef.current === 'locked') {
+                deadlineRef.current = new Date(p.endTime).getTime();
+                setRemaining(Math.max(0, Math.round((deadlineRef.current - Date.now()) / 1000)));
+                setBanner("Your instructor has reopened this exam — you can continue where you left off.");
+                setAutoReason('');
+                setPhase('active');
+                void document.documentElement.requestFullscreen().catch(() => {});
+            }
+        };
+        socket.on('exam_message', onMsg);
+        socket.on('time_extended', onExtend);
+        socket.on('attempt_update', onUpdate);
+        return () => {
+            leaveExamRoom(examId);
+            socket.off('exam_message', onMsg);
+            socket.off('time_extended', onExtend);
+            socket.off('attempt_update', onUpdate);
+        };
+    }, [examId, attemptId]);
 
     useEffect(() => {
         if (!online || phaseRef.current !== 'active') return;
@@ -366,6 +411,12 @@ export default function ExamPage() {
             </div>
 
             <div className="max-w-3xl mx-auto p-4 sm:p-6 space-y-5">
+                {banner && (
+                    <div className="glass-strong rounded-xl px-4 py-3 border border-sky-400/40 flex items-center justify-between gap-3">
+                        <p className="text-sm text-sky-100 min-w-0">Instructor: {banner}</p>
+                        <button onClick={() => setBanner('')} className="shrink-0 text-slate-400 hover:text-white text-lg leading-none">×</button>
+                    </div>
+                )}
                 {error && <div className="text-sm text-red-300 bg-red-500/10 border border-red-400/30 rounded-lg px-3 py-2">{error}</div>}
 
                 {!online && (

@@ -37,11 +37,19 @@ router.get('/exams/:examId/attempts/:attemptId', authenticate, async (req: any, 
             [req.params.attemptId]
         );
 
+        const notes = await pool.query(
+            `SELECT n.id, n.note_text, n.created_at, u.name AS instructor_name
+             FROM attempt_notes n JOIN users u ON u.id = n.instructor_id
+             WHERE n.attempt_id = $1 ORDER BY n.created_at DESC`,
+            [req.params.attemptId]
+        );
+
         res.json({
             attempt: attempt.rows[0],
             answers: answers.rows,
             events: events.rows,
-            snapshots: snapshots.rows
+            snapshots: snapshots.rows,
+            notes: notes.rows
         });
     } catch (error) {
         console.error(error);

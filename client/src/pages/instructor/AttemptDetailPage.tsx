@@ -37,11 +37,19 @@ interface SnapshotRow {
     captured_at: string;
 }
 
+interface NoteRow {
+    id: number;
+    note_text: string;
+    created_at: string;
+    instructor_name: string;
+}
+
 interface DetailData {
     attempt: Attempt;
     answers: AnswerRow[];
     events: EventRow[];
     snapshots: SnapshotRow[];
+    notes: NoteRow[];
 }
 
 export default function AttemptDetailPage() {
@@ -50,8 +58,12 @@ export default function AttemptDetailPage() {
     const [grades, setGrades] = useState<Record<number, { score: string; feedback: string }>>({});
     const [totalScore, setTotalScore] = useState<number | null>(null);
     const [savedMsg, setSavedMsg] = useState('');
+    const [noteText, setNoteText] = useState('');
+    const [noteBusy, setNoteBusy] = useState(false);
+    const [reopenBusy, setReopenBusy] = useState(false);
+    const [msg, setMsg] = useState('');
 
-    useEffect(() => {
+    const load = () => {
         api<DetailData>(`/api/instructor/details/exams/${examId}/attempts/${attemptId}`)
             .then(d => {
                 setData(d);
@@ -68,7 +80,9 @@ export default function AttemptDetailPage() {
                 setGrades(init);
             })
             .catch(err => console.error(err instanceof Error ? err.message : 'Failed to load attempt'));
-    }, [examId, attemptId]);
+    };
+
+    useEffect(load, [examId, attemptId]);
 
     const saveGrade = async (questionId: number) => {
         const g = grades[questionId];
@@ -81,6 +95,43 @@ export default function AttemptDetailPage() {
             setTimeout(() => setSavedMsg(''), 2000);
         } catch (err) {
             alert(err instanceof Error ? err.message : 'Failed to save grade');
+        }
+    };
+
+    const addNote = async () => {
+        if (!noteText.trim()) return;
+        setNoteBusy(true);
+        try {
+            await api(`/api/instructor/attempts/${attemptId}/notes`, {
+                method: 'POST',
+                body: { noteText: noteText.trim() }
+            });
+            setNoteText('');
+            load();
+        } catch (err) {
+            setMsg(err instanceof Error ? err.message : 'Failed to add note');
+        } finally {
+            setNoteBusy(false);
+        }
+    };
+
+    const reopen = async () => {
+        const reason = window.prompt('Reason for reopening this attempt (required):', '');
+        if (reason === null) return;
+        if (!reason.trim()) { alert('A reason is required.'); return; }
+        setReopenBusy(true);
+        try {
+            await api(`/api/instructor/attempts/${attemptId}/reopen`, {
+                method: 'POST',
+                body: { reason: reason.trim() }
+            });
+            setMsg('Attempt reopened — the student can now resume from where they left off.');
+            setTimeout(() => setMsg(''), 4000);
+            load();
+        } catch (err) {
+            setMsg(err instanceof Error ? err.message : 'Failed to reopen attempt');
+        } finally {
+            setReopenBusy(false);
         }
     };
 
@@ -122,14 +173,24 @@ export default function AttemptDetailPage() {
                     <p className="text-sm text-slate-400 break-words">{attempt.exam_title}</p>
                 </div>
                 <div className="text-right">
-                    <span className={`chip ${attempt.status === 'auto_submitted' ? 'bg-red-500/15 border border-red-400/40 text-red-300' : attempt.status === 'submitted' ? 'bg-emerald-500/15 border border-emerald-400/40 text-emerald-300' : 'bg-amber-500/15 border border-amber-400/40 text-amber-300'}`}>
+                    <span className={`chip ${attempt.status === 'auto_submitted' ? 'bg-red-500/15 border border-red-400/40 text-red-300' : attempt.status === 'submitted' ? 'bg-emerald-500/15 border border-emerald-400/40 text-emerald-300' : 'bg-sky-500/15 border border-sky-400/40 text-sky-300'}`}>
                         {attempt.status.replace('_', ' ')}
                     </span>
+                    {attempt.status === 'auto_submitted' && (
+                        <div className="mt-2">
+                            <button onClick={() => void reopen()} disabled={reopenBusy} className="btn-primary px-4 py-2 text-xs">
+                                {reopenBusy ? 'Reopening…' : 'Un-flag and reopen'}
+                            </button>
+                            <p className="text-[11px] text-slate-500 mt-1">Lets the student resume; reason is logged.</p>
+                        </div>
+                    )}
                     <p className="text-xs text-slate-500 mt-1">{attempt.submitted_at ? new Date(attempt.submitted_at).toLocaleString() : 'not submitted'}</p>
                     <p className="text-lg font-bold">{totalScore ?? '—'} pts</p>
                     {savedMsg && <span className="text-xs text-emerald-300 font-medium">{savedMsg}</span>}
                 </div>
             </div>
+
+            {msg && <div className={`text-sm rounded-lg px-4 py-3 border ${msg.startsWith('Failed') ? 'text-red-300 bg-red-500/10 border-red-400/30' : 'text-emerald-200 bg-emerald-500/10 border-emerald-400/40'}`}>{msg}</div>}
 
             <section className="space-y-3">
                 <h2 className="font-semibold text-slate-100">Answers</h2>
@@ -239,6 +300,26 @@ export default function AttemptDetailPage() {
                     </div>
                 </section>
             )}
+
+            <section className="glass-strong glass-glow rounded-xl p-5 space-y-3">
+                <h2 className="font-semibold text-slate-100">Instructor notes (private)</h2>
+                <p className="text-xs text-slate-500">Only instructors at this institution can see these — never the student.</p>
+                <div className="flex flex-col sm:flex-row gap-2">
+                    <input value={noteText} onChange={e => setNoteText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') void addNote(); }} placeholder="Add a note…" className="input-glass flex-1" />
+                    <button onClick={() => void addNote()} disabled={noteBusy || !noteText.trim()} className="btn-primary px-4 py-2 text-sm shrink-0">
+                        {noteBusy ? 'Adding…' : 'Add note'}
+                    </button>
+                </div>
+                <div className="space-y-2">
+                    {data.notes.length === 0 && <p className="text-xs text-slate-400">No notes yet.</p>}
+                    {data.notes.map(n => (
+                        <div key={n.id} className="glass rounded-lg px-3 py-2">
+                            <p className="text-sm text-slate-200 whitespace-pre-wrap">{n.note_text}</p>
+                            <p className="text-[11px] text-slate-500 mt-1">{n.instructor_name} · {new Date(n.created_at).toLocaleString()}</p>
+                        </div>
+                    ))}
+                </div>
+            </section>
         </div>
     );
 }
