@@ -134,7 +134,7 @@ export default function GradebookPage() {
             <div className="flex gap-2 flex-wrap items-center">
                 <span className="text-xs text-slate-400">{selected.size} selected</span>
                 <button onClick={() => void bulkFlag()} disabled={busy || !selected.size} className="btn-soft px-3 py-1.5 text-xs border-amber-400/30 text-amber-300">Flag for review</button>
-                <button onClick={() => void bulkRelease()} disabled={busy || !selected.size} className="btn-primary px-3 py-1.5 text-xs">Release grades</button>
+                <button onClick={() => void bulkRelease()} disabled={busy || !selected.size} className="btn-secondary px-3 py-1.5 text-xs">Release grades</button>
             </div>
 
             <div className="glass rounded-xl overflow-hidden">

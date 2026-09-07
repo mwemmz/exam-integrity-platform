@@ -92,7 +92,7 @@ export default function ConsentPage() {
 
                 {error && <div className="mb-4 text-sm text-red-300 bg-red-500/10 border border-red-400/30 rounded-lg px-3 py-2">{error}</div>}
 
-                <button onClick={begin} disabled={busy} className="btn-primary w-full py-3">
+                <button onClick={begin} disabled={busy} className="btn-secondary w-full py-3">
                     {busy ? 'Starting…' : 'I understand and agree to begin'}
                 </button>
             </div>

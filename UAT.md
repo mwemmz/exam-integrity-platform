@@ -14,17 +14,19 @@ test cases below against the **live production deployment**, then records the re
 | Student account | `student@demo.com` / `password123` |
 | Admin account | `admin@demo.com` / `password123` |
 | Seed data | 4 published exams, **all with a 2-minute time limit**: Demo Exam, Math Fundamentals, Computer Science Essentials, English Composition |
+| Demo groups | Morning Section = student / alice / carla / eve; Afternoon Section = bob / david (for group-visibility + accommodation tests) |
+| Live monitoring | Requires the instructor **Live Dashboard** and the student's exam open in **separate browsers** (socket.io real-time) |
 | Proctoring | Best tested in Chrome/Edge with camera + microphone; MediaPipe/AI load from CDN at runtime |
 
 ## Team Assignments
 | Developer | Module |
 | --- | --- |
 | Dev 1 | Authentication & Access Control |
-| Dev 2 | Student — Exam Discovery & Consent |
-| Dev 3 | Student — Exam Taking (Timer, Auto-save, Offline) |
+| Dev 2 | Student — Exam Discovery & Consent (incl. group visibility & accommodations) |
+| Dev 3 | Student — Exam Taking (Timer, Auto-save, Offline, Live Events: messages / extensions / reopen) |
 | Dev 4 | Student — AI Proctoring & Integrity Monitoring |
-| Dev 5 | Instructor — Exam Builder & Publishing |
-| Dev 6 | Instructor — Gradebook, Grading & Attempt Review |
+| Dev 5 | Instructor — Exam Builder, Publishing, Question Bank, Duplicate, Groups & Assignments |
+| Dev 6 | Instructor — Gradebook, Grading, Attempt Review, Live Monitoring, Bulk Actions & Violation Tracker |
 | Dev 7 | Admin System, Responsiveness & Production Health |
 
 ## How to record results
@@ -61,6 +63,8 @@ execute them in that order where there is a dependency.
 | TC-02-06 | Begin with audio consent | Tick microphone, begin, grant microphone. | Exam starts; mic permission granted; no camera prompt. | | |
 | TC-02-07 | Denying camera / mic still works | Begin with both boxes ticked but deny both permissions. | Exam still starts; page shows "camera/mic not granted — continuing without" notices. | | |
 | TC-02-08 | Fullscreen request | Begin an exam. | Browser attempts to enter full-screen (may require a one-time user gesture/approval in Firefox/Safari). | | |
+| TC-02-09 | Group-assigned exam visibility | Log in as `student@demo.com` (Morning Section) and, separately, as a student outside that group. | An exam assigned to Morning Section shows only for its members on the student dashboard. | | |
+| TC-02-10 | Accommodation reflected on consent | As instructor, set `+1 min` extra time for `eve@demo.com` on an exam (TC-05-13), then start that exam as eve. | Consent page shows the student's adjusted time limit (e.g. 3 minutes) instead of the default 2. | | |
 
 ## Dev 3 — Student: Exam Taking (Timer, Auto-save, Offline)
 
@@ -77,6 +81,9 @@ execute them in that order where there is a dependency.
 | TC-03-09 | Offline submit is blocked safely | While offline press Submit Exam. | No data loss; red notice appears: "You're offline… Reconnect and press Submit again." | | |
 | TC-03-10 | Submit with confirmation | On Online, press Submit Exam. | Confirmation dialog; on OK, exam submits and results page opens. | | |
 | TC-03-11 | Cannot start from a stale attempt | After submitting, click Start Exam for the same exam again. | A new attempt starts fresh (previous one is not overwritten). | | |
+| TC-03-12 | Instructor live message appears | While taking an exam, have the instructor send a broadcast message from the Live Dashboard (TC-06-16). | A dismissible banner appears at the top of the exam without interrupting or blocking answers. | | |
+| TC-03-13 | Time extension updates the countdown | Have the instructor extend this attempt's time while it is running (TC-06-17). | The header countdown immediately gains the added minutes and continues counting down. | | |
+| TC-03-14 | Reopened attempt resumes automatically | After an auto-submit locks the screen, have the instructor un-flag and reopen it (TC-06-13). | The lock screen clears; the exam resumes from where the student left off with the new deadline. | | |
 
 ## Dev 4 — Student: AI Proctoring & Integrity Monitoring
 
@@ -104,6 +111,12 @@ execute them in that order where there is a dependency.
 | TC-05-05 | Publish / unpublish toggles | Click **Publish**, then **Unpublish**. | Status chip flips published ↔ draft; student dashboard reflects the change (only published visible). | | |
 | TC-05-06 | Release / hide grades | After grading (see Dev 6), click **Release grades** then **Hide grades**. | Chip flips "grades released" ↔ "grades hidden"; students see/hide results accordingly. | | |
 | TC-05-07 | Exam builder mobile | Open the builder on a phone-width window. | Form grid stacks to 1 column; all inputs usable. | | |
+| TC-05-08 | Save a question to the bank | In the builder, open **Question Bank → Add**, create an MCQ, save. | Question appears in the question bank list with its type badge. | | |
+| TC-05-09 | Search + import from the bank | Search the bank by keyword, then **Import** a question into the builder, and again into a new exam. | Imported question appears with prompt/options/points; it can be used in multiple exams. | | |
+| TC-05-10 | Duplicate an exam | Click **Duplicate** on Math Fundamentals. | A new draft "… (copy)" appears with the same questions, settings and time limit; original unchanged. | | |
+| TC-05-11 | Assign an exam to a group | Assign a new exam to the Morning Section group only. | Only members of that group see the exam; publish state still gates visibility. | | |
+| TC-05-12 | Webcam/audio toggles | Create an exam with webcam **off** and audio **on**; start it as a student. | Consent page shows microphone monitoring but no webcam box; no camera permission prompt appears. | | |
+| TC-05-13 | Per-student accommodation | On an exam open **Accommodations**, add `+1 min` extra time for `eve@demo.com`. | Saves without affecting other settings; student eve sees the adjusted limit on consent (TC-02-10). | | |
 
 ## Dev 6 — Instructor: Gradebook, Grading & Attempt Review
 
@@ -117,6 +130,17 @@ execute them in that order where there is a dependency.
 | TC-06-06 | Webcam snapshot filmstrip | Open review of an attempt with webcam enabled. | Snapshot thumbnails render from the server with timestamps; strip scrolls horizontally on mobile. | | |
 | TC-06-07 | Grade release reflects for student | Release grades, then log in as student and open the attempt result. | Results page shows total score and per-question scores after release. | | |
 | TC-06-08 | Grades hidden until release | Before releasing, open the result as the student. | "Grades not released yet" screen is shown instead of scores. | | |
+| TC-06-09 | Gradebook row checkboxes | Open a gradebook and tick several rows + the header select-all. | Selected count updates; flagged rows keep their chips when selected. | | |
+| TC-06-10 | Bulk flag for review | Tick rows, click **Flag for review**. | Rows gain the amber "flagged" chip; the attempts show as unresolved in the Violations tracker. | | |
+| TC-06-11 | Bulk release grades | Tick rows, click **Release grades** and confirm. | Selected students see their scores immediately; gradebook header no longer shows "grades hidden". | | |
+| TC-06-12 | Gradebook CSV export | Click **Export CSV**. | A CSV file downloads with one row per attempt incl. email, score, status and flag info. | | |
+| TC-06-13 | Un-flag and reopen an attempt | On an auto-submitted attempt click **Un-flag and reopen**, enter a reason. | Attempt flips back to in-progress; the reason appears in the event timeline; student can resume (TC-03-14). | | |
+| TC-06-14 | Private instructor note | On an attempt add a note under **Instructor notes (private)**. | Note shows with instructor name + timestamp; logging in as the student shows no notes anywhere. | | |
+| TC-06-15 | Live dashboard rows | Keep a student mid-exam, open the **Live Dashboard**. | Attempt appears with name, status, score and violation counts; rows update via socket without a page refresh. | | |
+| TC-06-16 | Live dashboard message | From Live Dashboard send a broadcast message (and one to a single student). | Student sees the banner in real time (TC-03-12); message is stored in the message list. | | |
+| TC-06-17 | Live dashboard extend time | Click extend (+1 min) on a running attempt. | Confirm dialog; attempt's deadline extends; student countdown updates live (TC-03-13). | | |
+| TC-06-18 | Violations tracker filtering | Open Violations; filter by exam, type, date range; toggle flagged-only; change sort. | List narrows correctly; summary chips (total / by type) match the filtered set; **Mark reviewed** clears an item. | | |
+| TC-06-19 | Analytics page | Open Analytics for an exam with attempts. | Overall cards (average, participation) + per-question table (avg score, attempts, spread) render from real data. | | |
 
 ## Dev 7 — Admin System, Responsiveness & Production Health
 
@@ -137,13 +161,13 @@ execute them in that order where there is a dependency.
 | Developer | Module | Cases | Passed | Failed | Blocked | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
 | Dev 1 | Authentication & Access Control | 10 | | | | |
-| Dev 2 | Student — Discovery & Consent | 8 | | | | |
-| Dev 3 | Student — Taking / Auto-save / Offline | 11 | | | | |
+| Dev 2 | Student — Discovery & Consent (groups/accommodations) | 10 | | | | |
+| Dev 3 | Student — Taking / Auto-save / Offline / Live Events | 14 | | | | |
 | Dev 4 | Student — AI Proctoring & Integrity | 10 | | | | |
-| Dev 5 | Instructor — Builder & Publishing | 7 | | | | |
-| Dev 6 | Instructor — Grading & Review | 8 | | | | |
+| Dev 5 | Instructor — Builder, Question Bank, Duplicate, Groups | 13 | | | | |
+| Dev 6 | Instructor — Grading, Live Monitoring, Bulk, Violations | 19 | | | | |
 | Dev 7 | Admin / Responsiveness / Health | 10 | | | | |
-| **Total** | | **64** | | | | |
+| **Total** | | **86** | | | | |
 
 ## Sign-off
 | Developer | Signature | Date |

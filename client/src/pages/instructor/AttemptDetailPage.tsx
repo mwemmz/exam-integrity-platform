@@ -178,7 +178,7 @@ export default function AttemptDetailPage() {
                     </span>
                     {attempt.status === 'auto_submitted' && (
                         <div className="mt-2">
-                            <button onClick={() => void reopen()} disabled={reopenBusy} className="btn-primary px-4 py-2 text-xs">
+                            <button onClick={() => void reopen()} disabled={reopenBusy} className="btn-secondary px-4 py-2 text-xs">
                                 {reopenBusy ? 'Reopening…' : 'Un-flag and reopen'}
                             </button>
                             <p className="text-[11px] text-slate-500 mt-1">Lets the student resume; reason is logged.</p>
