@@ -27,11 +27,11 @@ export default function AdminDashboard() {
 
     return (
         <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-sky-300 to-cyan-300 text-transparent bg-clip-text glow-text">Admin Dashboard</h1>
-            {error && <div className="text-sm text-red-300 bg-red-500/10 border border-red-400/30 rounded-lg px-3 py-2">{error}</div>}
+            <h1 className="text-[2rem] font-extrabold tracking-tight text-[#f4f7fc]">Admin Dashboard</h1>
+            {error && <div className="text-sm text-[#b81e16] bg-[#e2231a]/8 border border-[#e2231a]/25 rounded-lg px-3 py-2">{error}</div>}
 
             <section>
-                <h2 className="font-semibold mb-2 text-slate-200">Institutions</h2>
+                <h2 className="font-extrabold mb-2 text-[#f4f7fc]">Institutions</h2>
                 <div className="glass rounded-xl overflow-hidden">
                     <div className="scroll-x">
                         <table className="tbl w-full text-sm min-w-[480px]">
@@ -41,8 +41,8 @@ export default function AdminDashboard() {
                             <tbody>
                                 {institutions.map(i => (
                                     <tr key={i.id}>
-                                        <td className="td text-slate-400">{i.id}</td>
-                                        <td className="td">{i.name}</td>
+                                        <td className="td text-[#5b6b84]">{i.id}</td>
+                                        <td className="td font-medium text-[#0a1322]">{i.name}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -52,7 +52,7 @@ export default function AdminDashboard() {
             </section>
 
             <section>
-                <h2 className="font-semibold mb-2 text-slate-200">Users ({users.length})</h2>
+                <h2 className="font-extrabold mb-2 text-[#f4f7fc]">Users ({users.length})</h2>
                 <div className="glass rounded-xl overflow-hidden">
                     <div className="scroll-x">
                         <table className="tbl w-full text-sm min-w-[560px]">
@@ -62,10 +62,10 @@ export default function AdminDashboard() {
                             <tbody>
                                 {users.map(u => (
                                     <tr key={u.id}>
-                                        <td className="td font-medium">{u.name}</td>
-                                        <td className="td text-slate-400">{u.email}</td>
-                                        <td className="td"><span className={`chip border ${u.role === 'admin' ? 'bg-cyan-500/15 border-cyan-400/40 text-cyan-300' : u.role === 'instructor' ? 'bg-blue-500/15 border-blue-400/40 text-blue-300' : 'bg-emerald-500/15 border-emerald-400/40 text-emerald-300'}`}>{u.role}</span></td>
-                                        <td className="td text-slate-400">{u.institution_id ?? '—'}</td>
+                                        <td className="td font-semibold text-[#0a1322]">{u.name}</td>
+                                        <td className="td text-[#5b6b84]">{u.email}</td>
+                                        <td className="td"><span className={`chip border ${u.role === 'admin' ? 'bg-[#e2231a]/10 border-[#e2231a]/25 text-[#b81e16]' : u.role === 'instructor' ? 'bg-[#13203c]/8 border border-[#e2e8f2] text-[#13203c]' : 'bg-emerald-50 border border-emerald-200 text-emerald-800'}`}>{u.role}</span></td>
+                                        <td className="td text-[#5b6b84]">{u.institution_id ?? '—'}</td>
                                     </tr>
                                 ))}
                             </tbody>
