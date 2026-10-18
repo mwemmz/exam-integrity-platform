@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, setToken, getAuthUser } from '../lib/api';
+import ThemeDots from '../components/ThemeDots';
+import { IconLogo } from '../components/Icons';
 
 export default function LoginPage({ onAuthed }: { onAuthed: () => void }) {
     const navigate = useNavigate();
@@ -38,12 +40,16 @@ export default function LoginPage({ onAuthed }: { onAuthed: () => void }) {
     return (
         <div className="min-h-screen flex items-center justify-center px-4 py-10 relative">
             <div aria-hidden className="pointer-events-none fixed inset-0 -z-10">
-                <div className="absolute -top-24 right-1/4 h-80 w-80 rounded-full bg-[#1d2c4a]/60 blur-3xl" />
-                <div className="absolute bottom-0 -left-24 h-72 w-72 rounded-full bg-[#13203c]/70 blur-3xl" />
+                <div className="absolute -top-24 right-1/4 h-80 w-80 rounded-full bg-accent/20 blur-3xl" />
+                <div className="absolute bottom-0 -left-24 h-72 w-72 rounded-full bg-accent/15 blur-3xl" />
             </div>
-            <div className="w-full max-w-sm glass-strong rounded-2xl p-6 sm:p-8">
-                <h1 className="text-[1.45rem] font-extrabold tracking-tight text-[#0a1322]">Exam Integrity Platform</h1>
-                <p className="text-sm text-[#5b6b84] mb-6">
+            <div className="w-full max-w-sm glass-strong p-6 sm:p-8">
+                <div className="mb-5 flex items-center justify-between">
+                    <span className="grid h-11 w-11 place-items-center rounded-[var(--radius-ctl)] bg-accent text-accent-ink shadow-lg"><IconLogo size={24} /></span>
+                    <ThemeDots className="text-ink" />
+                </div>
+                <h1 className="text-[1.45rem] font-extrabold tracking-tight text-ink">Exam Integrity Platform</h1>
+                <p className="text-sm text-muted mb-6">
                     {mode === 'login' ? 'Sign in to continue' : 'Create your account'}
                 </p>
 
@@ -65,7 +71,7 @@ export default function LoginPage({ onAuthed }: { onAuthed: () => void }) {
                     {mode === 'register' && (
                         <div>
                             <label htmlFor="role" className="label">Role</label>
-                            <select id="role" name="role" value={role} onChange={e => setRole(e.target.value)} className="input-glass bg-white">
+                            <select id="role" name="role" value={role} onChange={e => setRole(e.target.value)} className="input-glass bg-surface">
                                 <option value="student">Student</option>
                                 <option value="instructor">Instructor</option>
                             </select>
@@ -73,7 +79,7 @@ export default function LoginPage({ onAuthed }: { onAuthed: () => void }) {
                     )}
 
                     {error && (
-                        <div className="text-sm text-[#b81e16] bg-[#e2231a]/8 border border-[#e2231a]/25 rounded-lg px-3 py-2">{error}</div>
+                        <div className="text-sm text-danger bg-danger/8 border border-danger/25 rounded-lg px-3 py-2">{error}</div>
                     )}
 
                     <button type="submit" disabled={busy} className="btn-primary w-full py-2.5">
@@ -82,22 +88,22 @@ export default function LoginPage({ onAuthed }: { onAuthed: () => void }) {
                 </form>
 
                 <button onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); }}
-                    className="mt-4 w-full text-sm text-[#e2231a] hover:text-[#b81e16] hover:underline">
+                    className="mt-4 w-full text-sm text-accent hover:text-accent-strong hover:underline">
                     {mode === 'login' ? "Don't have an account? Register" : 'Already have an account? Log in'}
                 </button>
 
-                <div className="mt-6 pt-4 border-t border-[#e2e8f2]">
-                    <p className="text-[0.7rem] uppercase tracking-wider text-[#5b6b84] mb-2.5 font-extrabold">How the system works</p>
-                    <ul className="space-y-1.5 text-xs text-[#5b6b84]">
-                        <li><span className="chip bg-[#13203c]/8 text-[#13203c] mr-2">AI</span>Live face detection — presence, multiple faces, gaze tracking</li>
-                        <li><span className="chip bg-[#13203c]/8 text-[#13203c] mr-2">Devices</span>Phone and voice detection during the exam</li>
-                        <li><span className="chip bg-[#13203c]/8 text-[#13203c] mr-2">Timeline</span>Every integrity event lands in a reviewable timeline</li>
-                        <li><span className="chip bg-[#13203c]/8 text-[#13203c] mr-2">Rules</span>Violation rules can auto-submit attempts</li>
-                        <li><span className="chip bg-[#13203c]/8 text-[#13203c] mr-2">Offline</span>Answers are saved safely on network drop and sync on reconnect</li>
+                <div className="mt-6 pt-4 border-t border-line">
+                    <p className="text-[0.7rem] uppercase tracking-wider text-muted mb-2.5 font-extrabold">How the system works</p>
+                    <ul className="space-y-1.5 text-xs text-muted">
+                        <li><span className="chip bg-ink-2/8 text-ink-2 mr-2">AI</span>Live face detection — presence, multiple faces, gaze tracking</li>
+                        <li><span className="chip bg-ink-2/8 text-ink-2 mr-2">Devices</span>Phone and voice detection during the exam</li>
+                        <li><span className="chip bg-ink-2/8 text-ink-2 mr-2">Timeline</span>Every integrity event lands in a reviewable timeline</li>
+                        <li><span className="chip bg-ink-2/8 text-ink-2 mr-2">Rules</span>Violation rules can auto-submit attempts</li>
+                        <li><span className="chip bg-ink-2/8 text-ink-2 mr-2">Offline</span>Answers are saved safely on network drop and sync on reconnect</li>
                     </ul>
                 </div>
 
-                <p className="mt-4 text-xs text-[#5b6b84] text-center">
+                <p className="mt-4 text-xs text-muted text-center">
                     Demo logins: instructor@demo.com · student@demo.com · admin@demo.com — password123
                 </p>
             </div>

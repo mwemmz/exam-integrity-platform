@@ -145,18 +145,18 @@ export default function LiveDashboard() {
     };
 
     const statusPill = (s: string) => {
-        if (s === 'in_progress') return 'bg-[#13203c]/8 text-[#13203c] border border-[#e2e8f2]';
-        if (s === 'submitted') return 'bg-emerald-50 text-emerald-800 border border-emerald-200';
-        if (s === 'auto_submitted') return 'bg-[#e2231a]/10 text-[#b81e16] border border-[#e2231a]/25';
-        return 'bg-white text-[#5b6b84] border border-[#e2e8f2]';
+        if (s === 'in_progress') return 'bg-ink-2/8 text-ink-2 border border-line';
+        if (s === 'submitted') return 'bg-ok/10 text-ok border border-ok/30';
+        if (s === 'auto_submitted') return 'bg-danger/10 text-danger border border-danger/25';
+        return 'bg-surface text-muted border border-line';
     };
 
     return (
         <div className="max-w-5xl mx-auto p-4 sm:p-6 space-y-5">
             <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div>
-                    <Link to="/instructor" className="text-[#e2231a] hover:text-[#b81e16] hover:underline text-sm font-medium">← All exams</Link>
-                    <h1 className="text-[2rem] font-extrabold tracking-tight text-[#f4f7fc]">{exam ? `${exam.title} — Live` : 'Live Monitoring'}</h1>
+                    <Link to="/instructor" className="text-accent hover:text-accent-strong hover:underline text-sm font-medium">← All exams</Link>
+                    <h1 className="text-[2rem] font-extrabold tracking-tight text-on-canvas">{exam ? `${exam.title} — Live` : 'Live Monitoring'}</h1>
                 </div>
                 <div className="flex gap-2">
                     <Link to={`/instructor/exams/${examId}/analytics`} className="btn-soft px-4 py-2 text-sm">Analytics</Link>
@@ -164,13 +164,13 @@ export default function LiveDashboard() {
                 </div>
             </div>
 
-            {toast && <div className="text-sm text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-2.5">{toast}</div>}
-            {error && <div className="text-sm text-[#b81e16] bg-[#e2231a]/8 border border-[#e2231a]/25 rounded-lg px-3 py-2">{error}</div>}
+            {toast && <div className="text-sm text-ok bg-ok/10 border border-ok/30 rounded-lg px-4 py-2.5">{toast}</div>}
+            {error && <div className="text-sm text-danger bg-danger/8 border border-danger/25 rounded-lg px-3 py-2">{error}</div>}
 
             <div className="glass-strong p-4 space-y-3">
-                <h2 className="font-extrabold text-[#0a1322]">Send a message</h2>
+                <h2 className="font-extrabold text-ink">Send a message</h2>
                 <div className="flex flex-col sm:flex-row gap-2">
-                    <select value={msgTo} onChange={e => setMsgTo(e.target.value === '' ? '' : Number(e.target.value))} className="input-glass bg-white sm:w-56">
+                    <select value={msgTo} onChange={e => setMsgTo(e.target.value === '' ? '' : Number(e.target.value))} className="input-glass bg-surface sm:w-56">
                         <option value="">All students</option>
                         {rows.filter(r => r.attemptId).map(r => <option key={r.studentId} value={r.studentId}>{r.studentName}</option>)}
                     </select>
@@ -179,7 +179,7 @@ export default function LiveDashboard() {
                         {busyMsg ? 'Sending…' : 'Send'}
                     </button>
                 </div>
-                <p className="text-xs text-[#5b6b84]">Delivered instantly as a small banner on the student's exam screen. It never interrupts typing.</p>
+                <p className="text-xs text-muted">Delivered instantly as a small banner on the student's exam screen. It never interrupts typing.</p>
             </div>
 
             <div className="glass overflow-hidden">
@@ -196,34 +196,34 @@ export default function LiveDashboard() {
                         </thead>
                         <tbody>
                             {rows.length === 0 && (
-                                <tr><td colSpan={5} className="td text-center text-[#5b6b84] py-8">No students enrolled in this exam.</td></tr>
+                                <tr><td colSpan={5} className="td text-center text-muted py-8">No students enrolled in this exam.</td></tr>
                             )}
                             {rows.map(r => {
                                 const highlighted = r.status === 'in_progress' && (r.integrityCount > 0 || r.flagged);
                                 return (
-                                    <tr key={r.studentId} className={highlighted ? 'bg-[#e2231a]/8' : ''}>
+                                    <tr key={r.studentId} className={highlighted ? 'bg-accent/8' : ''}>
                                         <td className="td">
-                                            <p className="font-extrabold text-[#0a1322]">{r.studentName}</p>
-                                            <p className="text-xs text-[#5b6b84]">{r.studentEmail}</p>
-                                            {r.flagged && <span className="chip bg-[#e2231a]/10 border border-[#e2231a]/25 text-[#b81e16] mt-1">flagged for review</span>}
+                                            <p className="font-extrabold text-ink">{r.studentName}</p>
+                                            <p className="text-xs text-muted">{r.studentEmail}</p>
+                                            {r.flagged && <span className="chip bg-danger/10 border border-danger/25 text-danger mt-1">flagged for review</span>}
                                         </td>
                                         <td className="td">
                                             <span className={`chip ${statusPill(r.status)}`}>{r.status === 'not_started' ? 'not started' : r.status.replace('_', ' ')}</span>
                                         </td>
-                                        <td className="td font-mono font-extrabold text-[#0a1322]">
+                                        <td className="td font-mono font-extrabold text-ink">
                                             {r.status === 'in_progress' ? fmt(r.remainingSeconds) : '—'}
                                         </td>
                                         <td className="td">
                                             {r.integrityCount > 0
-                                                ? <span className={`chip ${highlighted ? 'bg-[#e2231a]/10 text-[#b81e16] border border-[#e2231a]/25' : 'bg-[#f4b400]/12 text-[#8a5d00] border border-[#f4b400]/40'}`}>{r.integrityCount}</span>
-                                                : <span className="text-[#5b6b84]">0</span>}
+                                                ? <span className={`chip ${highlighted ? 'bg-danger/10 text-danger border border-danger/25' : 'bg-warm/12 text-warm-ink border border-warm/40'}`}>{r.integrityCount}</span>
+                                                : <span className="text-muted">0</span>}
                                         </td>
                                         <td className="td text-right whitespace-nowrap">
                                             {r.attemptId && (
                                                 <>
-                                                    <Link to={`/instructor/exams/${examId}/attempts/${r.attemptId}`} className="text-[#e2231a] hover:text-[#b81e16] hover:underline font-semibold text-xs">Review</Link>
+                                                    <Link to={`/instructor/exams/${examId}/attempts/${r.attemptId}`} className="text-accent hover:text-accent-strong hover:underline font-semibold text-xs">Review</Link>
                                                     {r.status === 'in_progress' && (
-                                                        <button onClick={() => void extendTime(r)} disabled={extendBusy === r.attemptId} className="ml-2 btn-light px-2.5 py-1 text-xs border-emerald-300 text-emerald-800">+ Extend</button>
+                                                        <button onClick={() => void extendTime(r)} disabled={extendBusy === r.attemptId} className="ml-2 btn-light px-2.5 py-1 text-xs border-ok/30 text-ok">+ Extend</button>
                                                     )}
                                                 </>
                                             )}
@@ -235,7 +235,7 @@ export default function LiveDashboard() {
                     </table>
                 </div>
             </div>
-            <p className="text-xs text-[#5b6b84]">Rows turn red while a student is in progress and already flagged by the AI. “+ Extend” adds time live.</p>
+            <p className="text-xs text-muted">Rows turn red while a student is in progress and already flagged by the AI. “+ Extend” adds time live.</p>
         </div>
     );
 }

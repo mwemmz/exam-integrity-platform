@@ -3,6 +3,9 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import { setToken } from './lib/api'
+import { applyPrefs, loadPrefs } from './lib/theme'
+
+applyPrefs(loadPrefs())
 
 // LTI launch from an LMS (e.g. Moodle): the server redirects here with the session token in the URL fragment.
 if (window.location.pathname === '/lti') {

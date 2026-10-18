@@ -300,9 +300,9 @@ export default function InstructorDashboard() {
     return (
         <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
             <div className="flex items-center justify-between gap-3 flex-wrap">
-                <h1 className="text-[2rem] font-extrabold tracking-tight text-[#f4f7fc]">Instructor Dashboard</h1>
+                <h1 className="text-[2rem] font-extrabold tracking-tight text-on-canvas">Instructor Dashboard</h1>
                 <div className="flex gap-2 flex-wrap">
-                    <Link to="/instructor/violations" className="btn-soft px-4 py-2 text-sm border-[#e2231a]/40 text-[#f4b7b3]">Violation Tracker</Link>
+                    <Link to="/instructor/violations" className="btn-soft px-4 py-2 text-sm">Violation Tracker</Link>
                     <button onClick={() => setShowGroups(v => !v)} className="btn-soft px-4 py-2 text-sm">{showGroups ? 'Done' : 'Manage groups'}</button>
                     <button
                         onClick={() => setShowForm(v => !v)}
@@ -313,29 +313,29 @@ export default function InstructorDashboard() {
                 </div>
             </div>
 
-            {error && <div className="text-sm text-[#b81e16] bg-[#e2231a]/8 border border-[#e2231a]/25 rounded-lg px-3 py-2">{error}</div>}
+            {error && <div className="text-sm text-danger bg-danger/8 border border-danger/25 rounded-lg px-3 py-2">{error}</div>}
 
             {showGroups && (
                 <div className="glass-strong p-5 space-y-4">
                     <div className="flex items-center justify-between">
-                        <h2 className="font-extrabold text-[#0a1322]">Student groups</h2>
+                        <h2 className="font-extrabold text-ink">Student groups</h2>
                         <div className="flex gap-2">
                             <input value={newGroupName} onChange={e => setNewGroupName(e.target.value)} placeholder="New group name" className="input-glass w-44" />
                             <button onClick={createGroup} className="btn-primary px-3 py-1.5 text-xs">Add</button>
                         </div>
                     </div>
                     <div className="space-y-3">
-                        {groups.length === 0 && <p className="text-sm text-[#5b6b84]">No groups yet.</p>}
+                        {groups.length === 0 && <p className="text-sm text-muted">No groups yet.</p>}
                         {groups.map(g => (
                             <div key={g.id} className="glass p-4 space-y-2">
                                 <div className="flex items-center justify-between flex-wrap gap-2">
-                                    <p className="font-extrabold text-sm text-[#0a1322]">{g.name} <span className="text-xs text-[#5b6b84] font-medium">({g.member_count || 0} students)</span></p>
+                                    <p className="font-extrabold text-sm text-ink">{g.name} <span className="text-xs text-muted font-medium">({g.member_count || 0} students)</span></p>
                                     <div className="flex flex-wrap gap-1.5">
                                         {students.map(s => (
                                             <button
                                                 key={s.id}
                                                 onClick={() => void toggleMember(g.id, s.id)}
-                                                className={`chip border px-2.5 py-1 cursor-pointer transition-colors ${(groupMembers[g.id] || []).includes(s.id) ? 'bg-[#e2231a]/10 border-[#e2231a]/40 text-[#b81e16]' : 'bg-white border-[#e2e8f2] text-[#5b6b84] hover:border-[#e2231a]/50'}`}
+                                                className={`chip border px-2.5 py-1 cursor-pointer transition-colors ${(groupMembers[g.id] || []).includes(s.id) ? 'bg-danger/10 border-danger/40 text-danger' : 'bg-surface border-line text-muted hover:border-accent/50'}`}
                                                 title={`${s.name} (${s.email})`}
                                             >
                                                 {s.name.split(' ')[0]}
@@ -352,8 +352,8 @@ export default function InstructorDashboard() {
             {showForm && (
                 <div className="glass-strong p-5 space-y-4">
                     <div className="flex items-center justify-between flex-wrap gap-2">
-                        <h2 className="font-extrabold text-[#0a1322]">Create Exam</h2>
-                        <button onClick={() => setBankOpen(v => !v)} className="btn-light px-3 py-1.5 text-xs border-[#13203c]/25">
+                        <h2 className="font-extrabold text-ink">Create Exam</h2>
+                        <button onClick={() => setBankOpen(v => !v)} className="btn-light px-3 py-1.5 text-xs border-ink-2/25">
                             {bankOpen ? 'Close question bank' : 'Import from question bank'}
                         </button>
                     </div>
@@ -361,7 +361,7 @@ export default function InstructorDashboard() {
                     {bankOpen && (
                         <div className="glass p-4 space-y-3">
                             <div className="flex gap-2 flex-wrap">
-                                <select value={bankType} onChange={e => setBankType(e.target.value)} className="input-glass bg-white w-32">
+                                <select value={bankType} onChange={e => setBankType(e.target.value)} className="input-glass bg-surface w-32">
                                     <option value="">All types</option>
                                     <option value="mcq">MCQ</option>
                                     <option value="essay">Essay</option>
@@ -369,13 +369,13 @@ export default function InstructorDashboard() {
                                 </select>
                                 <input value={bankSearch} onChange={e => setBankSearch(e.target.value)} placeholder="Search questions…" className="input-glass flex-1 min-w-[160px]" />
                             </div>
-                            {bankLoading && <p className="text-xs text-[#5b6b84]">Loading…</p>}
-                            {!bankLoading && bankItems.length === 0 && <p className="text-xs text-[#5b6b84]">No bank questions match.</p>}
+                            {bankLoading && <p className="text-xs text-muted">Loading…</p>}
+                            {!bankLoading && bankItems.length === 0 && <p className="text-xs text-muted">No bank questions match.</p>}
                             {bankItems.map(item => (
-                                <div key={item.id} className="flex items-start justify-between gap-3 border-b border-[#e2e8f2] pb-2">
+                                <div key={item.id} className="flex items-start justify-between gap-3 border-b border-line pb-2">
                                     <div className="min-w-0">
-                                        <p className="text-sm text-[#2c3a55]">{item.prompt}</p>
-                                        <p className="text-[11px] text-[#5b6b84]">by {item.instructor_name} · {item.type} · {item.points} pts</p>
+                                        <p className="text-sm text-ink-soft">{item.prompt}</p>
+                                        <p className="text-[11px] text-muted">by {item.instructor_name} · {item.type} · {item.points} pts</p>
                                     </div>
                                     <button onClick={() => importFromBank(item)} className="btn-primary px-3 py-1 text-xs shrink-0">+ Add</button>
                                 </div>
@@ -400,12 +400,12 @@ export default function InstructorDashboard() {
                                 <button
                                     key={g.id}
                                     onClick={() => setSelectedGroupIds(ids => ids.includes(g.id) ? ids.filter(x => x !== g.id) : [...ids, g.id])}
-                                    className={`chip border px-3 py-1.5 cursor-pointer transition-colors ${selectedGroupIds.includes(g.id) ? 'bg-[#e2231a]/10 border-[#e2231a]/40 text-[#b81e16]' : 'bg-white border-[#e2e8f2] text-[#5b6b84] hover:border-[#e2231a]/50'}`}
+                                    className={`chip border px-3 py-1.5 cursor-pointer transition-colors ${selectedGroupIds.includes(g.id) ? 'bg-danger/10 border-danger/40 text-danger' : 'bg-surface border-line text-muted hover:border-accent/50'}`}
                                 >
                                     {g.name}
                                 </button>
                             ))}
-                            {groups.length === 0 && <span className="text-xs text-[#5b6b84]">No groups yet — add groups under “Manage groups”.</span>}
+                            {groups.length === 0 && <span className="text-xs text-muted">No groups yet — add groups under “Manage groups”.</span>}
                         </div>
                     </div>
 
@@ -413,13 +413,13 @@ export default function InstructorDashboard() {
                         {questions.map((q, i) => (
                             <div key={i} className="glass p-4 space-y-2">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                    <span className={`chip ${q.type === 'mcq' ? 'bg-[#13203c]/10 text-[#13203c] border border-[#e2e8f2]' : q.type === 'essay' ? 'bg-[#f4b400]/12 text-[#8a5d00] border border-[#f4b400]/40' : 'bg-[#e2231a]/10 text-[#b81e16] border border-[#e2231a]/25'}`}>{q.type}</span>
-                                    <span className="text-xs text-[#5b6b84]">Question {i + 1}</span>
+                                    <span className={`chip ${q.type === 'mcq' ? 'bg-ink-2/10 text-ink-2 border border-line' : q.type === 'essay' ? 'bg-warm/12 text-warm-ink border border-warm/40' : 'bg-danger/10 text-danger border border-danger/25'}`}>{q.type}</span>
+                                    <span className="text-xs text-muted">Question {i + 1}</span>
                                     <div className="ml-auto flex items-center gap-2">
-                                        <button onClick={() => void saveQToBank(i)} className="text-xs text-[#e2231a] hover:text-[#b81e16] font-semibold">Save to bank</button>
-                                        <label htmlFor={`q-${i}-points`} className="text-xs text-[#5b6b84]">Points</label>
+                                        <button onClick={() => void saveQToBank(i)} className="text-xs text-accent hover:text-accent-strong font-semibold">Save to bank</button>
+                                        <label htmlFor={`q-${i}-points`} className="text-xs text-muted">Points</label>
                                         <input id={`q-${i}-points`} name={`q-${i}-points`} type="number" min="1" aria-label={`Points for question ${i + 1}`} value={q.points} onChange={e => updateQ(i, { points: Number(e.target.value) || 1 })} className="input-glass w-16 py-1 text-xs" />
-                                        <button onClick={() => setQuestions(qs => qs.filter((_, j) => j !== i))} className="text-[#b81e16] hover:text-[#e2231a] text-xs font-semibold">Remove</button>
+                                        <button onClick={() => setQuestions(qs => qs.filter((_, j) => j !== i))} className="text-danger hover:text-accent text-xs font-semibold">Remove</button>
                                     </div>
                                 </div>
                                 <input id={`q-${i}-prompt`} name={`q-${i}-prompt`} aria-label={`Question ${i + 1} prompt`} value={q.prompt} onChange={e => updateQ(i, { prompt: e.target.value })} placeholder={`Question ${i + 1} prompt`} className="input-glass" />
@@ -429,14 +429,14 @@ export default function InstructorDashboard() {
                                         {q.optionsText.split(',').map(s => s.trim()).filter(Boolean).length > 0 && (
                                             <div className="flex flex-wrap gap-3">
                                                 {q.optionsText.split(',').map(s => s.trim()).filter(Boolean).map((opt, idx) => (
-                                                    <label key={idx} className="flex items-center gap-1.5 text-xs bg-white border border-[#e2e8f2] rounded-full px-3 py-1 cursor-pointer hover:border-[#e2231a]/50 transition-colors text-[#2c3a55]">
-                                                        <input type="checkbox" name={`q-${i}-correct`} value={idx} checked={q.correct.includes(idx)} onChange={() => updateQ(i, { correct: q.correct.includes(idx) ? q.correct.filter(x => x !== idx) : [...q.correct, idx] })} className="accent-[#e2231a]" />
+                                                    <label key={idx} className="flex items-center gap-1.5 text-xs bg-surface border border-line rounded-full px-3 py-1 cursor-pointer hover:border-accent/50 transition-colors text-ink-soft">
+                                                        <input type="checkbox" name={`q-${i}-correct`} value={idx} checked={q.correct.includes(idx)} onChange={() => updateQ(i, { correct: q.correct.includes(idx) ? q.correct.filter(x => x !== idx) : [...q.correct, idx] })} className="accent-accent" />
                                                         <span>{opt}</span>
                                                     </label>
                                                 ))}
                                             </div>
                                         )}
-                                        <p className="text-xs text-[#5b6b84]">Check the box next to each correct option.</p>
+                                        <p className="text-xs text-muted">Check the box next to each correct option.</p>
                                     </>
                                 )}
                             </div>
@@ -444,9 +444,9 @@ export default function InstructorDashboard() {
                     </div>
 
                     <div className="flex gap-2 flex-wrap">
-                        <button onClick={() => addQuestion('mcq')} className="btn-light px-3 py-1.5 text-xs border-[#13203c]/25">+ MCQ</button>
-                        <button onClick={() => addQuestion('essay')} className="btn-light px-3 py-1.5 text-xs border-[#f4b400]/50 text-[#8a5d00]">+ Essay</button>
-                        <button onClick={() => addQuestion('practical')} className="btn-light px-3 py-1.5 text-xs border-[#e2231a]/30 text-[#b81e16]">+ Practical</button>
+                        <button onClick={() => addQuestion('mcq')} className="btn-light px-3 py-1.5 text-xs border-ink-2/25">+ MCQ</button>
+                        <button onClick={() => addQuestion('essay')} className="btn-light px-3 py-1.5 text-xs border-warm/50 text-warm-ink">+ Essay</button>
+                        <button onClick={() => addQuestion('practical')} className="btn-light px-3 py-1.5 text-xs border-danger/30 text-danger">+ Practical</button>
                     </div>
 
                     <button onClick={createExam} disabled={saving} className="btn-primary px-5 py-2 text-sm">
@@ -455,45 +455,53 @@ export default function InstructorDashboard() {
                 </div>
             )}
 
+            {exams.length > 0 && (
+                <div className="grid grid-cols-3 gap-3">
+                    <div className="tinted tint-1 p-4"><p className="text-xs font-semibold uppercase tracking-wider text-ink-soft">Exams</p><p className="text-2xl font-extrabold text-ink">{exams.length}</p></div>
+                    <div className="tinted tint-2 p-4"><p className="text-xs font-semibold uppercase tracking-wider text-ink-soft">Published</p><p className="text-2xl font-extrabold text-ink">{exams.filter(e => e.status === 'published').length}</p></div>
+                    <div className="tinted tint-3 p-4"><p className="text-xs font-semibold uppercase tracking-wider text-ink-soft">Drafts</p><p className="text-2xl font-extrabold text-ink">{exams.filter(e => e.status !== 'published').length}</p></div>
+                </div>
+            )}
+
             <div className="space-y-3">
                 {exams.length === 0 && !showForm && (
-                    <p className="text-[#5b6b84] text-sm">No exams yet — click “+ New Exam” to build your first one.</p>
+                    <p className="text-muted text-sm">No exams yet — click “+ New Exam” to build your first one.</p>
                 )}
                 {exams.map(exam => (
                     <div key={exam.id} className="glass glass-glow p-5 flex flex-wrap items-center justify-between gap-3">
                         <div className="min-w-0">
-                            <p className="font-extrabold text-[#0a1322] break-words">{exam.title}</p>
-                            <p className="text-xs text-[#5b6b84] mt-0.5 break-words">
+                            <p className="font-extrabold text-ink break-words">{exam.title}</p>
+                            <p className="text-xs text-muted mt-0.5 break-words">
                                 {exam.time_limit_minutes ? `${exam.time_limit_minutes} min · ` : ''}{exam.description || ''}
                             </p>
                             <div className="flex gap-2 mt-1.5 flex-wrap">
-                                <span className={`chip ${exam.status === 'published' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-white text-[#5b6b84] border border-[#e2e8f2]'}`}>
+                                <span className={`chip ${exam.status === 'published' ? 'bg-ok/10 text-ok border border-ok/30' : 'bg-surface text-muted border border-line'}`}>
                                     {exam.status}
                                 </span>
-                                <span className={`chip ${exam.grades_released ? 'bg-[#13203c]/8 text-[#13203c] border border-[#e2e8f2]' : 'bg-[#f4b400]/12 text-[#8a5d00] border border-[#f4b400]/40'}`}>
+                                <span className={`chip ${exam.grades_released ? 'bg-ink-2/8 text-ink-2 border border-line' : 'bg-warm/12 text-warm-ink border border-warm/40'}`}>
                                     {exam.grades_released ? 'grades released' : 'grades hidden'}
                                 </span>
                                 {Array.isArray(exam.assigned_groups) && exam.assigned_groups.length > 0 && (
-                                    <span className="chip bg-white text-[#5b6b84] border border-[#e2e8f2]">
+                                    <span className="chip bg-surface text-muted border border-line">
                                         {exam.assigned_groups.join(', ')}
                                     </span>
                                 )}
                             </div>
                             {(exam.status === 'published' ? null : (
-                                <p className="text-[11px] text-[#8a5d00] mt-1 font-medium">Draft — not visible to students yet.</p>
+                                <p className="text-[11px] text-warm-ink mt-1 font-medium">Draft — not visible to students yet.</p>
                             ))}
                         </div>
                         <div className="flex gap-2 flex-wrap">
                             <Link to={`/instructor/exams/${exam.id}/gradebook`} className="btn-light px-3 py-1.5 text-xs">Gradebook</Link>
-                            <Link to={`/instructor/exams/${exam.id}/live`} className="btn-light px-3 py-1.5 text-xs border-emerald-300 text-emerald-800">Live</Link>
-                            <button onClick={() => void openAccommodations(exam)} className="btn-light px-3 py-1.5 text-xs border-[#13203c]/25">Accommodations</button>
+                            <Link to={`/instructor/exams/${exam.id}/live`} className="btn-light px-3 py-1.5 text-xs border-ok/30 text-ok">Live</Link>
+                            <button onClick={() => void openAccommodations(exam)} className="btn-light px-3 py-1.5 text-xs border-ink-2/25">Accommodations</button>
                             <button onClick={() => void duplicateExam(exam)} className="btn-light px-3 py-1.5 text-xs">Duplicate</button>
-                            <button onClick={() => toggleRelease(exam)} className="btn-light px-3 py-1.5 text-xs border-[#f4b400]/50 text-[#8a5d00]">
+                            <button onClick={() => toggleRelease(exam)} className="btn-light px-3 py-1.5 text-xs border-warm/50 text-warm-ink">
                                 {exam.grades_released ? 'Hide grades' : 'Release grades'}
                             </button>
                             <button onClick={() => togglePublish(exam)} className={`px-3 py-1.5 rounded-lg text-xs font-extrabold shadow-lg transition-all duration-200 ${exam.status === 'published'
-                                ? 'bg-gradient-to-r from-[#e2231a] to-[#b81e16] text-white shadow-[#e2231a]/25 hover:shadow-[#e2231a]/40 hover:brightness-110'
-                                : 'bg-gradient-to-r from-[#f4b400] to-[#d99f00] text-[#3f2a00] shadow-[#f4b400]/25 hover:shadow-[#f4b400]/40 hover:brightness-110'}`}>
+                                ? 'bg-gradient-to-r from-accent to-accent-strong text-white shadow-accent/25 hover:shadow-accent/40 hover:brightness-110'
+                                : 'bg-warm text-on-warm shadow-warm/25 hover:brightness-95'}`}>
                                 {exam.status === 'published' ? 'Unpublish' : 'Publish'}
                             </button>
                         </div>
@@ -505,13 +513,13 @@ export default function InstructorDashboard() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" onClick={() => setAccForExam(null)}>
                     <div className="glass-strong p-5 sm:p-6 w-full max-w-lg max-h-[85vh] overflow-y-auto space-y-4" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-between gap-2">
-                            <h3 className="font-extrabold text-[#0a1322]">Accommodations — {accForExam.title}</h3>
-                            <button onClick={() => setAccForExam(null)} className="text-[#5b6b84] hover:text-[#0a1322]">✕</button>
+                            <h3 className="font-extrabold text-ink">Accommodations — {accForExam.title}</h3>
+                            <button onClick={() => setAccForExam(null)} className="text-muted hover:text-ink">✕</button>
                         </div>
                         <div className="grid grid-cols-2 gap-2">
                             <div className="col-span-2">
                                 <label className="label">Student</label>
-                                <select value={accStudentId ?? ''} onChange={e => setAccStudentId(Number(e.target.value))} className="input-glass bg-white w-full">
+                                <select value={accStudentId ?? ''} onChange={e => setAccStudentId(Number(e.target.value))} className="input-glass bg-surface w-full">
                                     <option value="">Choose a student…</option>
                                     {students.map(s => <option key={s.id} value={s.id}>{s.name} — {s.email}</option>)}
                                 </select>
@@ -534,20 +542,20 @@ export default function InstructorDashboard() {
                                 </div>
                             </div>
                         </div>
-                        <p className="text-xs text-[#5b6b84]">Extra time is added to the exam limit. A custom end time overrides it if earlier.</p>
+                        <p className="text-xs text-muted">Extra time is added to the exam limit. A custom end time overrides it if earlier.</p>
                         <div className="space-y-2">
-                            {accommodations.length === 0 && <p className="text-xs text-[#5b6b84]">No accommodations yet.</p>}
+                            {accommodations.length === 0 && <p className="text-xs text-muted">No accommodations yet.</p>}
                             {accommodations.map(a => (
                                 <div key={a.student_id} className="glass px-3 py-2 flex items-center justify-between gap-2 text-sm">
                                     <div className="min-w-0">
-                                        <p className="font-extrabold text-[#0a1322] truncate">{a.student_name}</p>
-                                        <p className="text-[11px] text-[#5b6b84]">
+                                        <p className="font-extrabold text-ink truncate">{a.student_name}</p>
+                                        <p className="text-[11px] text-muted">
                                             +{a.extra_time_minutes || 0} min
                                             {a.custom_start_at ? ` · starts ${new Date(a.custom_start_at).toLocaleString()}` : ''}
                                             {a.custom_end_at ? ` · ends ${new Date(a.custom_end_at).toLocaleString()}` : ''}
                                         </p>
                                     </div>
-                                    <button onClick={() => void removeAccommodation(a.student_id)} className="text-[#b81e16] hover:text-[#e2231a] text-xs shrink-0 font-semibold">Remove</button>
+                                    <button onClick={() => void removeAccommodation(a.student_id)} className="text-danger hover:text-accent text-xs shrink-0 font-semibold">Remove</button>
                                 </div>
                             ))}
                         </div>
