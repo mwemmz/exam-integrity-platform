@@ -97,7 +97,7 @@ router.post('/', authenticate, async (req: any, res: Response) => {
         return res.status(403).json({ error: 'Unauthorized' });
     }
 
-    const { title, description, timeLimitMinutes, startsAt, endsAt, randomizeOrder, webcamEnabled, groupIds, questions } = req.body;
+    const { title, description, timeLimitMinutes, startsAt, endsAt, randomizeOrder, webcamEnabled, proctoringPolicy, groupIds, questions } = req.body;
 
     if (!title || !Array.isArray(questions)) {
         return res.status(400).json({ error: 'Title and questions are required' });
@@ -107,9 +107,9 @@ router.post('/', authenticate, async (req: any, res: Response) => {
     try {
         await client.query('BEGIN');
         const examResult = await client.query(
-            `INSERT INTO exams (institution_id, instructor_id, title, description, time_limit_minutes, starts_at, ends_at, randomize_order, webcam_enabled)
-             VALUES ((SELECT institution_id FROM users WHERE id = $1), $1, $2, $3, $4, $5, $6, $7, COALESCE($8, FALSE)) RETURNING id`,
-            [req.user.userId, title, description || null, timeLimitMinutes || 60, startsAt || null, endsAt || null, !!randomizeOrder, webcamEnabled ?? null]
+            `INSERT INTO exams (institution_id, instructor_id, title, description, time_limit_minutes, starts_at, ends_at, randomize_order, webcam_enabled, proctoring_policy)
+             VALUES ((SELECT institution_id FROM users WHERE id = $1), $1, $2, $3, $4, $5, $6, $7, COALESCE($8, FALSE), $9) RETURNING id`,
+            [req.user.userId, title, description || null, timeLimitMinutes || 60, startsAt || null, endsAt || null, !!randomizeOrder, webcamEnabled ?? null, proctoringPolicy === 'flag_only' ? 'flag_only' : 'auto_submit']
         );
         const examId = examResult.rows[0].id;
 
@@ -153,10 +153,10 @@ router.post('/:id/duplicate', authenticate, async (req: any, res: Response) => {
 
         await client.query('BEGIN');
         const copyRes = await client.query(
-            `INSERT INTO exams (institution_id, instructor_id, title, description, time_limit_minutes, starts_at, ends_at, randomize_order, webcam_enabled, published, grades_released)
-             VALUES ($1, $2, $3, $4, $5, NULL, NULL, $6, COALESCE($7, FALSE), FALSE, FALSE)
+            `INSERT INTO exams (institution_id, instructor_id, title, description, time_limit_minutes, starts_at, ends_at, randomize_order, webcam_enabled, proctoring_policy, published, grades_released)
+             VALUES ($1, $2, $3, $4, $5, NULL, NULL, $6, COALESCE($7, FALSE), $8, FALSE, FALSE)
              RETURNING id`,
-            [src.institution_id, req.user.userId, `${src.title} (Copy)`, src.description, src.time_limit_minutes, src.randomize_order, src.webcam_enabled]
+            [src.institution_id, req.user.userId, `${src.title} (Copy)`, src.description, src.time_limit_minutes, src.randomize_order, src.webcam_enabled, src.proctoring_policy || 'auto_submit']
         );
         const examId = copyRes.rows[0].id;
 

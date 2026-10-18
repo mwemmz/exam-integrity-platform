@@ -63,6 +63,7 @@ export default function InstructorDashboard() {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [timeLimit, setTimeLimit] = useState('60');
+    const [policy, setPolicy] = useState<'auto_submit' | 'flag_only'>('auto_submit');
     const [questions, setQuestions] = useState<DraftQ[]>([]);
     const [selectedGroupIds, setSelectedGroupIds] = useState<number[]>([]);
     const [saving, setSaving] = useState(false);
@@ -183,6 +184,7 @@ export default function InstructorDashboard() {
                     description,
                     timeLimitMinutes: Number(timeLimit) || null,
                     randomizeOrder: false,
+                    proctoringPolicy: policy,
                     groupIds: selectedGroupIds,
                     questions: questions.map(q => ({
                         type: q.type,
@@ -384,6 +386,10 @@ export default function InstructorDashboard() {
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <input id="exam-title" name="title" aria-label="Exam title" value={title} onChange={e => setTitle(e.target.value)} placeholder="Exam title" className="input-glass col-span-2" />
                         <input id="exam-time-limit" name="timeLimitMinutes" type="number" min="1" aria-label="Time limit in minutes" value={timeLimit} onChange={e => setTimeLimit(e.target.value)} placeholder="Time limit (min)" className="input-glass" />
+                        <select aria-label="Proctoring policy" value={policy} onChange={e => setPolicy(e.target.value as 'auto_submit' | 'flag_only')} className="input-glass">
+                            <option value="auto_submit">Violations: auto-submit exam</option>
+                            <option value="flag_only">Violations: flag for human review only</option>
+                        </select>
                         <textarea id="exam-description" name="description" aria-label="Exam description" value={description} onChange={e => setDescription(e.target.value)} placeholder="Instructions / description" rows={2} className="input-glass col-span-3 resize-none" />
                     </div>
 

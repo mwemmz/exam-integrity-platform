@@ -41,6 +41,7 @@ const LABELS: Record<string, string> = {
     voice_detected: 'Voice / loud noise',
     gaze_away: 'Looked away',
     auto_submit_triggered: 'Auto-submit (rule)',
+    policy_flagged: 'Flagged for review (rule)',
     instructor_override: 'Instructor override'
 };
 

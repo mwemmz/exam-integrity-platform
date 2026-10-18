@@ -78,3 +78,15 @@ CREATE INDEX IF NOT EXISTS idx_integrity_attempt ON integrity_events (attempt_id
 CREATE INDEX IF NOT EXISTS idx_integrity_type ON integrity_events (event_type);
 CREATE INDEX IF NOT EXISTS idx_integrity_timestamp ON integrity_events ("timestamp");
 CREATE INDEX IF NOT EXISTS idx_attempts_exam ON exam_attempts (exam_id);
+
+-- 9. LTI 1.1 grade return (Moodle / LMS integration)
+CREATE TABLE IF NOT EXISTS lti_outcomes (
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    exam_id INTEGER REFERENCES exams(id) ON DELETE CASCADE,
+    service_url TEXT NOT NULL,
+    sourcedid TEXT NOT NULL,
+    PRIMARY KEY (user_id, exam_id)
+);
+
+-- 10. Per-exam proctoring policy: 'auto_submit' (default) or 'flag_only'
+ALTER TABLE exams ADD COLUMN IF NOT EXISTS proctoring_policy VARCHAR(20) DEFAULT 'auto_submit';

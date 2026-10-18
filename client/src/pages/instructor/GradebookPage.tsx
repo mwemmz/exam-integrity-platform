@@ -125,6 +125,7 @@ export default function GradebookPage() {
                 </div>
                 <div className="flex gap-2 flex-wrap">
                     <Link to={`/instructor/exams/${examId}/analytics`} className="btn-soft px-3 py-1.5 text-xs">Analytics</Link>
+                    <Link to={`/instructor/exams/${examId}/similarity`} className="btn-soft px-3 py-1.5 text-xs">Similarity</Link>
                     <button onClick={() => void exportCsv()} className="btn-soft px-3 py-1.5 text-xs border-[#d7e1ef]">Export CSV</button>
                 </div>
             </div>
