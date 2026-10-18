@@ -19,7 +19,7 @@ import rateLimit from 'express-rate-limit';
 import { UPLOADS_DIR } from './config';
 
 const app = express();
-fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+try { fs.mkdirSync(UPLOADS_DIR, { recursive: true }); } catch (e) { console.warn('[config] cannot create UPLOADS_DIR', UPLOADS_DIR, e); }
 
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(cors());

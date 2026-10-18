@@ -13,8 +13,6 @@ services:
         sync: false
       - key: NODE_ENV
         value: production
-      - key: UPLOADS_DIR
-        value: /var/data/uploads
       - key: PUBLIC_API_URL
         value: https://exam-integrity-server.onrender.com
       - key: CLIENT_URL

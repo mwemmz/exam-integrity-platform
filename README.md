@@ -46,7 +46,7 @@ Apply new migrations to an existing database: `node server/scripts/migrate-live.
 `GET /api/lti/config` shows the values to enter in the LMS.
 
 ## Security notes
-- `JWT_SECRET` is mandatory in production (the server refuses to start without it).
+- `JWT_SECRET` is mandatory in production (the server refuses to start without it); use 16+ random characters.
 - Self-registration is limited to student/instructor; auth endpoints are rate limited; Helmet is enabled.
 - Snapshot and integrity-event endpoints accept only the owning student's attempt.
 - Snapshots are stored under `UPLOADS_DIR`; mount a persistent volume (Render free disks are ephemeral).

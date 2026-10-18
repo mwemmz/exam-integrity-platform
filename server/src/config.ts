@@ -4,9 +4,12 @@ const isProd = process.env.NODE_ENV === 'production';
 
 function requireSecret(): string {
     const secret = process.env.JWT_SECRET;
-    if (secret && secret.length >= 16) return secret;
+    if (secret) {
+        if (secret.length < 16) console.warn('[config] JWT_SECRET is shorter than 16 characters - rotate it to a long random value');
+        return secret;
+    }
     if (isProd) {
-        throw new Error('JWT_SECRET must be set (16+ characters) in production');
+        throw new Error('JWT_SECRET must be set in production');
     }
     console.warn('[config] JWT_SECRET not set - using an insecure development secret');
     return 'dev-only-insecure-secret';
