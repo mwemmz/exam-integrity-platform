@@ -1,6 +1,7 @@
 ﻿import { Router, Request, Response } from 'express';
 import { pool } from '../../db';
 
+import { passbackAttempt } from '../lti';
 import { authenticate } from '../../middleware/auth';
 import { broadcastAttemptUpdate } from '../../realtime';
 
@@ -151,6 +152,7 @@ router.post('/:attemptId/submit', authenticate, async (req: any, res: Response) 
         const examIdRow = await pool.query('SELECT exam_id FROM exam_attempts WHERE id = $1', [req.params.attemptId]);
         if (examIdRow.rows.length) await broadcastAttemptUpdate(examIdRow.rows[0].exam_id, req.params.attemptId);
 
+        void passbackAttempt(Number(req.params.attemptId));
         res.json({ message: 'Exam submitted', totalScore: total.rows[0].total });
     } catch (error) {
         console.error(error);

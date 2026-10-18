@@ -5,7 +5,7 @@ import { pool } from './db';
 
 let io: Server | null = null;
 
-const JWT_SECRET = process.env.JWT_SECRET || 'supersecret';
+import { JWT_SECRET } from './config';
 
 export function initRealtime(server: http.Server): Server {
     io = new Server(server, { cors: { origin: '*' }, transports: ['websocket', 'polling'] });

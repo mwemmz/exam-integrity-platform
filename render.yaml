@@ -13,6 +13,14 @@ services:
         sync: false
       - key: NODE_ENV
         value: production
+      - key: PUBLIC_API_URL
+        value: https://exam-integrity-server.onrender.com
+      - key: CLIENT_URL
+        value: https://exam-integrity-client.onrender.com
+      - key: LTI_CONSUMER_KEY
+        sync: false
+      - key: LTI_SHARED_SECRET
+        sync: false
   - type: web
     name: exam-integrity-client
     runtime: node

@@ -62,6 +62,9 @@ router.post('/:attemptId/event', authenticate, async (req: any, res: Response) =
     }
 
     try {
+        const owned = await pool.query('SELECT 1 FROM exam_attempts WHERE id = $1 AND student_id = $2', [req.params.attemptId, req.user.userId]);
+        if (!owned.rows.length) return res.status(403).json({ error: 'Not your attempt' });
+
         await pool.query(
             'INSERT INTO integrity_events (attempt_id, event_type, metadata) VALUES ($1, $2, $3)',
             [req.params.attemptId, eventType, metadata ? JSON.stringify(metadata) : null]
@@ -69,6 +72,28 @@ router.post('/:attemptId/event', authenticate, async (req: any, res: Response) =
 
         const evaluation = await evaluateRules(req.params.attemptId);
         if (evaluation.triggered && evaluation.rule) {
+            const pol = await pool.query(
+                'SELECT e.proctoring_policy FROM exams e JOIN exam_attempts a ON a.exam_id = e.id WHERE a.id = $1',
+                [req.params.attemptId]
+            );
+            if (pol.rows[0]?.proctoring_policy === 'flag_only') {
+                // Human-in-the-loop: do not end the exam, queue it for instructor review (once per rule).
+                const already = await pool.query(
+                    "SELECT 1 FROM integrity_events WHERE attempt_id = $1 AND event_type = 'policy_flagged' AND metadata->>'rule' = $2",
+                    [req.params.attemptId, evaluation.rule]
+                );
+                if (!already.rows.length) {
+                    await pool.query('UPDATE exam_attempts SET flagged_for_review = TRUE WHERE id = $1', [req.params.attemptId]);
+                    await pool.query(
+                        'INSERT INTO integrity_events (attempt_id, event_type, metadata) VALUES ($1, $2, $3)',
+                        [req.params.attemptId, 'policy_flagged', JSON.stringify({ rule: evaluation.rule })]
+                    );
+                }
+                const ex = await pool.query('SELECT exam_id FROM exam_attempts WHERE id = $1', [req.params.attemptId]);
+                if (ex.rows.length) await broadcastAttemptUpdate(ex.rows[0].exam_id, req.params.attemptId);
+                return res.status(201).json({ message: 'Event logged', autoSubmitted: false, flagged: true });
+            }
+
             await pool.query(
                 "UPDATE exam_attempts SET status = 'auto_submitted', submitted_at = NOW() WHERE id = $1 AND status = 'in_progress'",
                 [req.params.attemptId]

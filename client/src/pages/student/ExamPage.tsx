@@ -361,20 +361,20 @@ export default function ExamPage() {
     };
 
     if (phase === 'loading') {
-        return <div className="p-8 text-[#5b6b84]">Loading exam…</div>;
+        return <div className="p-8 text-muted">Loading exam…</div>;
     }
 
     if (phase === 'locked') {
         return (
             <div className="min-h-[70vh] flex items-center justify-center px-4">
-                <div className={`glass-strong p-8 text-center border ${autoReason ? 'border-[#e2231a]/40 bg-[#fdf1f0]' : 'border-[#e2e8f2]'}`}>
-                    <h1 className="text-[1.7rem] font-extrabold tracking-tight text-[#0a1322] mb-2">
+                <div className={`glass-strong p-8 text-center border ${autoReason ? 'border-danger/40 bg-danger/10' : 'border-line'}`}>
+                    <h1 className="text-[1.7rem] font-extrabold tracking-tight text-ink mb-2">
                         {autoReason ? 'Exam submitted automatically' : 'Exam submitted'}
                     </h1>
                     {autoReason && (
-                        <p className="text-sm text-[#b81e16] mb-4">Your exam was submitted automatically because {autoReason.toLowerCase()}.</p>
+                        <p className="text-sm text-danger mb-4">Your exam was submitted automatically because {autoReason.toLowerCase()}.</p>
                     )}
-                    <p className="text-sm text-[#5b6b84] mb-6">Your answers up to this point have been saved.</p>
+                    <p className="text-sm text-muted mb-6">Your answers up to this point have been saved.</p>
                     <div className="flex gap-3 justify-center flex-wrap">
                         <Link to={`/results/${attemptId}`} className="btn-primary px-4 py-2 text-sm">View status</Link>
                         <Link to="/student" className="btn-light px-4 py-2 text-sm">Back to dashboard</Link>
@@ -386,9 +386,9 @@ export default function ExamPage() {
 
     return (
         <div onContextMenu={e => e.preventDefault()} className="pb-28">
-            <div className="sticky top-0 z-10 bg-[#0a1322]/85 backdrop-blur-xl border-b border-[#e2e8f2]/10 text-white px-3 sm:px-6 py-3 flex items-center justify-between gap-2 shadow-lg shadow-black/25">
+            <div className="sticky top-0 z-10 bg-chrome/90 backdrop-blur-xl border-b border-chrome-ink/10 text-chrome-ink px-3 sm:px-6 py-3 flex items-center justify-between gap-2 shadow-lg shadow-black/25">
                 <div className="text-sm min-w-0">
-                    <span className="font-bold text-[#f4f7fc]">Exam in progress</span>
+                    <span className="font-bold text-chrome-ink">Exam in progress</span>
                     {proctorStatus !== 'idle' && (
                         <span className={`ml-2 text-[11px] px-2 py-0.5 rounded-full font-semibold align-middle ${
                             proctorStatus === 'ready'
@@ -403,30 +403,30 @@ export default function ExamPage() {
                     {!online && (
                         <span className="ml-2 text-[11px] px-2 py-0.5 rounded-full font-semibold align-middle bg-red-500/20 border border-red-400/50 text-red-200">Offline</span>
                     )}
-                    <span className="ml-2 text-[#5b6b84] hidden md:inline">Tab switches and full-screen exits are being recorded</span>
+                    <span className="ml-2 text-muted hidden md:inline">Tab switches and full-screen exits are being recorded</span>
                 </div>
-                <div className={`px-3 py-1.5 rounded-lg font-mono font-bold text-base sm:text-lg shrink-0 border ${remaining <= 60 ? 'bg-red-500/20 border-red-400/50 text-red-200 shadow-lg shadow-red-500/25' : 'bg-white/10 border-white/15 text-[#f4f7fc]'}`}>
+                <div className={`px-3 py-1.5 rounded-lg font-mono font-bold text-base sm:text-lg shrink-0 border ${remaining <= 60 ? 'bg-red-500/20 border-red-400/50 text-red-200 shadow-lg shadow-red-500/25' : 'bg-white/10 border-white/15 text-on-canvas'}`}>
                     {deadlineRef.current ? fmt(remaining) : '--:--'}
                 </div>
             </div>
 
             <div className="max-w-3xl mx-auto p-4 sm:p-6 space-y-5">
                 {banner && (
-                    <div className="glass-strong px-4 py-3 border border-[#f4b400]/50 flex items-center justify-between gap-3">
-                        <p className="text-sm text-[#13203c] font-medium min-w-0">Instructor: {banner}</p>
-                        <button onClick={() => setBanner('')} className="shrink-0 text-[#5b6b84] hover:text-[#0a1322] text-lg leading-none">×</button>
+                    <div className="glass-strong px-4 py-3 border border-warm/50 flex items-center justify-between gap-3">
+                        <p className="text-sm text-ink-2 font-medium min-w-0">Instructor: {banner}</p>
+                        <button onClick={() => setBanner('')} className="shrink-0 text-muted hover:text-ink text-lg leading-none">×</button>
                     </div>
                 )}
-                {error && <div className="text-sm text-[#b81e16] bg-[#e2231a]/8 border border-[#e2231a]/25 rounded-lg px-3 py-2">{error}</div>}
+                {error && <div className="text-sm text-danger bg-danger/8 border border-danger/25 rounded-lg px-3 py-2">{error}</div>}
 
                 {!online && (
-                    <div className="text-sm text-[#3f2a00] bg-[#f4b400]/12 border border-[#f4b400]/45 rounded-lg px-4 py-3">
+                    <div className="text-sm text-warm-ink bg-warm/15 border border-warm/45 rounded-lg px-4 py-3">
                         You're offline — answers are saved on this device and will sync automatically when you reconnect.
                     </div>
                 )}
 
                 {submitError && (
-                    <div className="text-sm text-[#b81e16] bg-[#e2231a]/8 border border-[#e2231a]/25 rounded-lg px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
+                    <div className="text-sm text-danger bg-danger/8 border border-danger/25 rounded-lg px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
                         <span className="min-w-0">{submitError}</span>
                         <button onClick={() => void submitExam()} disabled={submitting} className="btn-primary px-3 py-1.5 text-xs shrink-0">
                             Retry submit
@@ -437,26 +437,26 @@ export default function ExamPage() {
                 {questions.map((q, i) => (
                     <div key={q.id} className="glass glass-glow p-5">
                         <div className="flex items-start justify-between gap-4 mb-3">
-                            <p className="font-extrabold text-[#0a1322]">{i + 1}. {q.prompt}</p>
-                            <span className="shrink-0 chip bg-[#0a1322]/5 border border-[#e2e8f2] text-[#5b6b84]">{q.points} pts · {q.type}</span>
+                            <p className="font-extrabold text-ink">{i + 1}. {q.prompt}</p>
+                            <span className="shrink-0 chip bg-ink/5 border border-line text-muted">{q.points} pts · {q.type}</span>
                         </div>
 
                         {q.type === 'mcq' && (
                             <div className="space-y-1.5">
                                 {(q.options || []).map((opt, idx) => (
-                                    <label key={idx} className="flex items-center gap-2 text-sm cursor-pointer rounded-lg px-2 -mx-2 py-1 transition-colors hover:bg-[#e2231a]/5 text-[#2c3a55]">
+                                    <label key={idx} className="flex items-center gap-2 text-sm cursor-pointer rounded-lg px-2 -mx-2 py-1 transition-colors hover:bg-accent/5 text-ink-soft">
                                         <input
                                             type="checkbox"
                                             name={`q${q.id}`}
                                             value={idx}
                                             checked={selectedFor(q.id).includes(idx)}
                                             onChange={() => toggleMcq(q.id, idx)}
-                                            className="accent-[#e2231a]"
+                                            className="accent-accent"
                                         />
                                         <span>{opt}</span>
                                     </label>
                                 ))}
-                                <p className="text-xs text-[#5b6b84] mt-1">Select all answers that apply.</p>
+                                <p className="text-xs text-muted mt-1">Select all answers that apply.</p>
                             </div>
                         )}
 
@@ -476,12 +476,12 @@ export default function ExamPage() {
                 ))}
             </div>
 
-            <div className="fixed bottom-0 left-0 right-0 bg-[#0a1322]/90 backdrop-blur-xl border-t border-[#e2e8f2]/10 px-4 sm:px-6 py-3 flex items-center justify-between gap-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-                <span className="text-[11px] sm:text-xs text-[#5b6b84] hidden sm:block">Auto-saves on this device & syncs to the server</span>
+            <div className="fixed bottom-0 left-0 right-0 bg-ink/90 backdrop-blur-xl border-t border-line/10 px-4 sm:px-6 py-3 flex items-center justify-between gap-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+                <span className="text-[11px] sm:text-xs text-muted hidden sm:block">Auto-saves on this device & syncs to the server</span>
                 <button
                     onClick={() => { if (window.confirm('Submit your exam for grading? You cannot change answers afterwards.')) void submitExam(); }}
                     disabled={submitting}
-                    className="flex-1 sm:flex-none bg-gradient-to-r from-[#e2231a] to-[#b81e16] text-white px-6 py-2.5 rounded-lg font-extrabold shadow-lg shadow-[#e2231a]/25 hover:shadow-[#e2231a]/40 hover:brightness-110 disabled:opacity-50 transition-all duration-200"
+                    className="flex-1 sm:flex-none bg-gradient-to-r from-accent to-accent-strong text-white px-6 py-2.5 rounded-lg font-extrabold shadow-lg shadow-accent/25 hover:shadow-accent/40 hover:brightness-110 disabled:opacity-50 transition-all duration-200"
                 >
                     {submitting ? 'Submitting…' : 'Submit Exam'}
                 </button>

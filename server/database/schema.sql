@@ -140,3 +140,13 @@ ALTER TABLE exam_attempts ADD COLUMN IF NOT EXISTS end_time TIMESTAMP;
 ALTER TABLE exam_attempts ADD COLUMN IF NOT EXISTS flagged_for_review BOOLEAN DEFAULT FALSE;
 ALTER TABLE exam_attempts ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMP;
 ALTER TABLE exam_attempts ADD COLUMN IF NOT EXISTS reviewed_by INTEGER REFERENCES users(id);
+
+CREATE TABLE IF NOT EXISTS lti_outcomes (
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    exam_id INTEGER REFERENCES exams(id) ON DELETE CASCADE,
+    service_url TEXT NOT NULL,
+    sourcedid TEXT NOT NULL,
+    PRIMARY KEY (user_id, exam_id)
+);
+
+ALTER TABLE exams ADD COLUMN IF NOT EXISTS proctoring_policy VARCHAR(20) DEFAULT 'auto_submit';

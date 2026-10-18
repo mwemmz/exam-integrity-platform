@@ -4,7 +4,22 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#4f46e5" />
+    <meta name="theme-color" content="#5b4bb7" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <script>
+      /* apply the saved theme before first paint to avoid a flash */
+      try {
+        var p = JSON.parse(localStorage.getItem('eip_theme_prefs') || 'null');
+        var r = document.documentElement;
+        if (p) {
+          if (p.theme) r.setAttribute('data-theme', p.theme);
+          if (p.radius && p.radius !== 'default') r.setAttribute('data-radius', p.radius);
+          if (p.accent && /^#[0-9a-fA-F]{6}$/.test(p.accent)) r.style.setProperty('--accent', p.accent);
+        }
+      } catch (e) {}
+    </script>
     <title>Exam Integrity Platform</title>
   </head>
   <body>

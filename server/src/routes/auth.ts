@@ -6,10 +6,17 @@ import jwt from 'jsonwebtoken';
 
 const router = Router();
 
-const JWT_SECRET = process.env.JWT_SECRET || 'supersecret';
+import { JWT_SECRET } from '../config';
 
 router.post('/register', async (req, res) => {
     const { name, email, password, role, institution_id } = req.body;
+    if (!name || !email || typeof password !== 'string' || password.length < 6) {
+        return res.status(400).json({ error: 'Name, email and a password of at least 6 characters are required' });
+    }
+    // Self-registration is limited to students and instructors; admins are created by seeding/admins only.
+    if (!['student', 'instructor'].includes(role)) {
+        return res.status(400).json({ error: 'Role must be student or instructor' });
+    }
     const passwordHash = await bcrypt.hash(password, 10);
     
     try {
