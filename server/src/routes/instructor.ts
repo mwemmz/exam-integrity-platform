@@ -555,7 +555,7 @@ router.get('/exams/:examId/analytics', authenticate, async (req: any, res: Respo
 // Violation tracker
 // ---------------------------------------------------------------------------
 
-const TRACKED_EVENT_TYPES = ['tab_switch', 'fullscreen_exit', 'paste_blocked', 'face_missing', 'multi_face', 'phone_detected', 'voice_detected', 'gaze_away', 'auto_submit_triggered', 'instructor_override'];
+const TRACKED_EVENT_TYPES = ['tab_switch', 'fullscreen_exit', 'paste_blocked', 'face_missing', 'multi_face', 'phone_detected', 'voice_detected', 'gaze_away', 'camera_blocked', 'proctor_unavailable', 'auto_submit_triggered', 'policy_flagged', 'instructor_override'];
 
 router.get('/violations', authenticate, async (req: any, res: Response) => {
     if (!isInstructor(req, res)) return;

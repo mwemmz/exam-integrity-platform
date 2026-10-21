@@ -1,8 +1,21 @@
-export type ProctorFlagType = 'face_missing' | 'multi_face' | 'phone_detected' | 'voice_detected' | 'gaze_away';
+import { SightingWindow, collectSightings, frameStats, gazeOffset, isBlocked, type DetectedBox } from './proctorLogic';
+
+export type ProctorFlagType = 'face_missing' | 'multi_face' | 'phone_detected' | 'voice_detected' | 'gaze_away' | 'camera_blocked';
 
 export interface ProctorFlag {
     type: ProctorFlagType;
     metadata: Record<string, unknown>;
+    /** JPEG data URL of the camera frame at the moment of the flag (video-based flags only). */
+    evidence?: string;
+}
+
+export type ModelState = 'loading' | 'ready' | 'failed';
+
+export interface ProctorStatus {
+    face: ModelState;
+    object: ModelState;
+    /** Which part of loading failed, for display / logging. */
+    detail?: string;
 }
 
 export interface ProctorOptions {
@@ -10,177 +23,262 @@ export interface ProctorOptions {
     audioStream?: MediaStream;
     onFlag: (flag: ProctorFlag) => void;
     onError?: (err: Error) => void;
+    onStatus?: (status: ProctorStatus) => void;
     faceIntervalMs?: number;
     objectIntervalMs?: number;
 }
 
-const VISION_MODULE = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/vision_bundle.mjs';
-const VISION_CDN = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm';
-const FACE_MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite';
-const OBJECT_MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/1/efficientdet_lite0.tflite';
+// The MediaPipe runtime and models are fetched in the browser. Each has a fallback so that a
+// blocked CDN on a campus network does not silently disable monitoring.
+const VISION_MODULES = [
+    'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/vision_bundle.mjs',
+    'https://unpkg.com/@mediapipe/tasks-vision@0.10.3/vision_bundle.mjs'
+];
+const WASM_BASES = [
+    'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm',
+    'https://unpkg.com/@mediapipe/tasks-vision@0.10.3/wasm'
+];
+const LOCAL_MODELS = `${import.meta.env.BASE_URL || '/'}models/`;
+const FACE_MODELS = [
+    'https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite',
+    `${LOCAL_MODELS}blaze_face_short_range.tflite`
+];
+const OBJECT_MODELS = [
+    'https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/1/efficientdet_lite0.tflite',
+    `${LOCAL_MODELS}efficientdet_lite0.tflite`
+];
 
-const loadVisionBundle = (() => {
-    let singleton: Promise<{ fileset: any; FaceDetector: any; ObjectDetector: any }> | null = null;
-    return () => {
-        if (!singleton) {
-            singleton = (async () => {
-                const vision = await import(/* @vite-ignore */ VISION_MODULE);
-                const fileset = await vision.FilesetResolver.forVisionTasks(VISION_CDN);
-                return { fileset, FaceDetector: vision.FaceDetector, ObjectDetector: vision.ObjectDetector };
-            })().catch(err => {
-                singleton = null;
-                throw err;
-            });
+const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
+
+let visionPromise: Promise<any> | null = null;
+async function loadVisionModule(): Promise<any> {
+    if (!visionPromise) {
+        visionPromise = (async () => {
+            let last: unknown;
+            for (const url of VISION_MODULES) {
+                try { return await import(/* @vite-ignore */ url); } catch (e) { last = e; }
+            }
+            throw last instanceof Error ? last : new Error('Could not load the MediaPipe runtime');
+        })().catch(err => { visionPromise = null; throw err; });
+    }
+    return visionPromise;
+}
+
+/** Tries every runtime / model source and GPU then CPU, so one blocked host does not disable the detector. */
+async function createDetector(kind: 'face' | 'object'): Promise<any> {
+    const vision = await loadVisionModule();
+    const Ctor = kind === 'face' ? vision.FaceDetector : vision.ObjectDetector;
+    const models = kind === 'face' ? FACE_MODELS : OBJECT_MODELS;
+    let last: unknown;
+    for (const base of WASM_BASES) {
+        let fileset: any;
+        try { fileset = await vision.FilesetResolver.forVisionTasks(base); } catch (e) { last = e; continue; }
+        for (const model of models) {
+            for (const delegate of ['GPU', 'CPU'] as const) {
+                try {
+                    return await Ctor.createFromOptions(fileset, {
+                        baseOptions: { modelAssetPath: model, delegate },
+                        runningMode: 'VIDEO',
+                        ...(kind === 'face'
+                            ? { numFaces: 10, minDetectionConfidence: 0.5 }
+                            : { scoreThreshold: 0.2, maxResults: 10 })
+                    });
+                } catch (e) { last = e; }
+            }
         }
-        return singleton;
-    };
-})();
-
-async function loadFaceDetector(): Promise<any> {
-    const { FaceDetector, fileset } = await loadVisionBundle();
-    const make = (delegate: 'GPU' | 'CPU') =>
-        FaceDetector.createFromOptions(fileset, {
-            baseOptions: { modelAssetPath: FACE_MODEL_URL, delegate },
-            runningMode: 'VIDEO',
-            numFaces: 10,
-            minDetectionConfidence: 0.5
-        });
-    try {
-        return await make('GPU');
-    } catch {
-        return await make('CPU');
     }
+    throw last instanceof Error ? last : new Error(`Could not load the ${kind} model`);
 }
 
-async function loadObjectDetector(): Promise<any> {
-    const { ObjectDetector, fileset } = await loadVisionBundle();
-    const make = (delegate: 'GPU' | 'CPU') =>
-        ObjectDetector.createFromOptions(fileset, {
-            baseOptions: { modelAssetPath: OBJECT_MODEL_URL, delegate },
-            runningMode: 'VIDEO',
-            scoreThreshold: 0.45,
-            maxResults: 5
-        });
-    try {
-        return await make('GPU');
-    } catch {
-        return await make('CPU');
+async function createWithRetry(kind: 'face' | 'object', isDisposed: () => boolean): Promise<any> {
+    const delays = [0, 2000, 5000, 10000];
+    let last: unknown;
+    for (const d of delays) {
+        if (d) await sleep(d);
+        if (isDisposed()) throw new Error('disposed');
+        try { return await createDetector(kind); } catch (e) { last = e; }
     }
+    throw last instanceof Error ? last : new Error(`Could not load the ${kind} model`);
 }
 
-const SUSPICIOUS_CLASSES = new Set(['cell phone', 'remote']);
+type DurationFlag = 'face_missing' | 'multi_face' | 'camera_blocked';
 
 export async function startProctoring(options: ProctorOptions): Promise<() => void> {
     const disposed = { value: false };
     const timers: ReturnType<typeof setInterval>[] = [];
-    const flagThrottle = new Map<string, number>();
-    let faceMissingSince: number | null = null;
-    let lastFaceMissingSent = 0;
-    let multiFaceSince: number | null = null;
-    let lastMultiFaceSent = 0;
+    const lastSent = new Map<string, number>();
+
+    // Duration-based flags report how long the condition has lasted (the server sums these for its rules).
+    const since: Record<DurationFlag, number | null> = { face_missing: null, multi_face: null, camera_blocked: null };
+    const reportedUntil: Record<DurationFlag, number> = { face_missing: 0, multi_face: 0, camera_blocked: 0 };
+    const DURATION_THROTTLE_MS = 15000;
+    const THROTTLE_MS: Record<string, number> = { phone_detected: 12000, gaze_away: 20000, voice_detected: 20000 };
+
     let faceDetector: any = null;
     let objectModel: any = null;
     let audioCtx: AudioContext | null = null;
     let audioAnalyser: AnalyserNode | null = null;
     let audioBaseline = 0;
     let audioVoicedStreak = 0;
+    let gazeStreak = 0;
+    const sightings = new SightingWindow();
+
+    const status: ProctorStatus = { face: 'loading', object: 'loading' };
+    const pushStatus = (patch: Partial<ProctorStatus>) => {
+        Object.assign(status, patch);
+        options.onStatus?.({ ...status });
+    };
+    const fail = (err: unknown) => options.onError?.(err instanceof Error ? err : new Error(String(err)));
 
     const monitorVideo = document.createElement('video');
     monitorVideo.muted = true;
     monitorVideo.playsInline = true;
-    monitorVideo.width = 480;
-    monitorVideo.height = 360;
     monitorVideo.srcObject = options.videoStream;
-    try { await monitorVideo.play(); } catch { /* autoplay policy fallback handled by detection loop */ }
+    try { await monitorVideo.play(); } catch { /* retried by the loops once frames arrive */ }
 
-    const emit = (type: ProctorFlagType, metadata: Record<string, unknown>) => {
-        const now = Date.now();
-        const last = flagThrottle.get(type) || 0;
-        if (type === 'face_missing' || type === 'multi_face') {
-            if (now - last < 15000) return;
-            const start = type === 'face_missing' ? faceMissingSince : multiFaceSince;
-            if (start === null) return;
-            const base = Math.max(type === 'face_missing' ? lastFaceMissingSent : lastMultiFaceSent, start);
-            metadata.seconds = Math.max(1, Math.round((now - base) / 1000));
-            if (type === 'face_missing') lastFaceMissingSent = now;
-            else lastMultiFaceSent = now;
-        } else if (now - last < 20000) {
-            return;
+    const videoTrack = options.videoStream.getVideoTracks()[0];
+
+    const ready = () => monitorVideo.readyState >= 2 && monitorVideo.videoWidth > 0;
+
+    /** Grab the current camera frame (optionally outlining a detected object) as a JPEG data URL. */
+    const captureEvidence = (box?: DetectedBox | null): string | undefined => {
+        if (!ready()) return undefined;
+        try {
+            const w = 480;
+            const h = Math.round((monitorVideo.videoHeight / monitorVideo.videoWidth) * w);
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return undefined;
+            ctx.drawImage(monitorVideo, 0, 0, w, h);
+            if (box) {
+                const k = w / monitorVideo.videoWidth;
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = '#ef4444';
+                ctx.strokeRect(box.x * k, box.y * k, box.w * k, box.h * k);
+            }
+            return canvas.toDataURL('image/jpeg', 0.6);
+        } catch {
+            return undefined;
         }
-        flagThrottle.set(type, now);
-        options.onFlag({ type, metadata });
     };
 
-    const startFaceDetection = async () => {
-        const timer = setInterval(async () => {
-            if (disposed.value) return;
-            try {
-                faceDetector = faceDetector || await loadFaceDetector();
-                if (!monitorVideo.videoWidth) return;
-                const result = await faceDetector.detectForVideo(monitorVideo, performance.now());
-                const detections: any[] = result.detections || [];
-                const now = Date.now();
+    const emitSimple = (type: ProctorFlagType, metadata: Record<string, unknown>, box?: DetectedBox | null) => {
+        const now = Date.now();
+        if (now - (lastSent.get(type) || 0) < (THROTTLE_MS[type] || 20000)) return;
+        lastSent.set(type, now);
+        options.onFlag({ type, metadata, evidence: type === 'voice_detected' ? undefined : captureEvidence(box) });
+    };
 
-                if (detections.length >= 2) {
-                    if (multiFaceSince === null) multiFaceSince = now;
-                    if (now - multiFaceSince > 5000) {
-                        emit('multi_face', { faces: detections.length });
-                    }
-                    faceMissingSince = null;
-                } else if (detections.length === 1) {
-                    multiFaceSince = null;
-                    faceMissingSince = null;
-                    const kp = detections[0].keypoints || [];
-                    const byName: Record<string, any> = {};
-                    for (const p of kp) byName[p.name] = p;
-                    const rightEye = byName['rightEye'];
-                    const leftEye = byName['leftEye'];
-                    const nose = byName['noseTip'];
-                    if (rightEye && leftEye && nose) {
-                        const eyeMidX = (rightEye.x + leftEye.x) / 2;
-                        const eyeMidY = (rightEye.y + leftEye.y) / 2;
-                        const dx = nose.x - eyeMidX;
-                        const dz = Math.abs(nose.y - eyeMidY);
-                        if (Math.abs(dx) > 0.07 || dz > 0.09) {
-                            emit('gaze_away', { dx: Number(dx.toFixed(3)), dz: Number(dz.toFixed(3)) });
-                        }
-                    }
-                } else {
-                    multiFaceSince = null;
-                    if (faceMissingSince === null) faceMissingSince = now;
-                    if (now - faceMissingSince > 5000) {
-                        emit('face_missing', {});
+    /** Called every tick while a condition holds; emits once it has lasted `afterMs`, then every 15 s. */
+    const emitDuration = (type: DurationFlag, active: boolean, afterMs: number, metadata: Record<string, unknown> = {}) => {
+        const now = Date.now();
+        if (!active) { since[type] = null; return; }
+        if (since[type] === null) since[type] = now;
+        if (now - (since[type] as number) <= afterMs) return;
+        if (now - (lastSent.get(type) || 0) < DURATION_THROTTLE_MS) return;
+        const base = Math.max(reportedUntil[type], since[type] as number);
+        lastSent.set(type, now);
+        reportedUntil[type] = now;
+        options.onFlag({
+            type,
+            metadata: { ...metadata, seconds: Math.max(1, Math.round((now - base) / 1000)) },
+            evidence: captureEvidence()
+        });
+    };
+
+    // ---- Camera covered / blocked: needs no model, so it works even if the AI models fail to load.
+    const statCanvas = document.createElement('canvas');
+    statCanvas.width = 32;
+    statCanvas.height = 24;
+    const statCtx = statCanvas.getContext('2d', { willReadFrequently: true });
+    let blockedNow = false;
+
+    const checkCamera = () => {
+        if (disposed.value) return;
+        let blocked = false;
+        let detail = '';
+        if (videoTrack && (videoTrack.readyState === 'ended' || videoTrack.muted)) {
+            blocked = true;
+            detail = 'camera stream stopped';
+        } else if (ready() && statCtx) {
+            try {
+                statCtx.drawImage(monitorVideo, 0, 0, 32, 24);
+                const s = frameStats(statCtx.getImageData(0, 0, 32, 24).data);
+                if (isBlocked(s)) {
+                    blocked = true;
+                    detail = `frame ${s.mean < 18 ? 'dark' : 'flat'} (brightness ${Math.round(s.mean)}, detail ${s.std.toFixed(1)})`;
+                }
+            } catch { /* tainted or unavailable frame: ignore */ }
+        }
+        blockedNow = blocked;
+        emitDuration('camera_blocked', blocked, 5000, blocked ? { detail } : {});
+    };
+
+    // ---- Faces
+    let faceBusy = false;
+    const faceTick = async () => {
+        if (disposed.value || faceBusy || !faceDetector || !ready()) return;
+        faceBusy = true;
+        try {
+            const result = await faceDetector.detectForVideo(monitorVideo, performance.now());
+            const detections: any[] = result.detections || [];
+
+            if (blockedNow) {
+                // A covered lens is reported as camera_blocked, not as a missing face.
+                emitDuration('face_missing', false, 0);
+                emitDuration('multi_face', false, 0);
+                return;
+            }
+
+            emitDuration('multi_face', detections.length >= 2, 4000, { faces: detections.length });
+            emitDuration('face_missing', detections.length === 0, 5000, { detail: 'no face in view' });
+
+            if (detections.length === 1) {
+                const byName: Record<string, any> = {};
+                for (const p of detections[0].keypoints || []) byName[p.name] = p;
+                if (byName.rightEye && byName.leftEye && byName.noseTip) {
+                    const g = gazeOffset(byName.rightEye, byName.leftEye, byName.noseTip);
+                    gazeStreak = g.away ? gazeStreak + 1 : 0;
+                    // Two consecutive frames: ignores a single blink or jitter.
+                    if (gazeStreak >= 2) {
+                        emitSimple('gaze_away', { dx: Number(g.dx.toFixed(3)), dz: Number(g.dz.toFixed(3)) });
                     }
                 }
-            } catch (err) {
-                options.onError?.(err instanceof Error ? err : new Error(String(err)));
+            } else {
+                gazeStreak = 0;
             }
-        }, options.faceIntervalMs || 3500);
-        timers.push(timer);
+        } catch (err) {
+            fail(err);
+        } finally {
+            faceBusy = false;
+        }
     };
 
-    const startObjectDetection = async () => {
-        const timer = setInterval(async () => {
-            if (disposed.value) return;
-            try {
-                objectModel = objectModel || await loadObjectDetector();
-                if (!monitorVideo.videoWidth) return;
-                const result: any = await objectModel.detectForVideo(monitorVideo, performance.now());
-                const detections: any[] = result.detections || [];
-                for (const d of detections) {
-                    const cat = d.categories && d.categories[0];
-                    if (!cat || !cat.categoryName) continue;
-                    if (SUSPICIOUS_CLASSES.has(cat.categoryName)) {
-                        emit('phone_detected', { kind: cat.categoryName, confidence: Number(cat.score.toFixed(2)) });
-                    }
-                }
-            } catch (err) {
-                options.onError?.(err instanceof Error ? err : new Error(String(err)));
+    // ---- Phones and other devices
+    let objectBusy = false;
+    const objectTick = async () => {
+        if (disposed.value || objectBusy || !objectModel || !ready() || blockedNow) return;
+        objectBusy = true;
+        try {
+            const result: any = await objectModel.detectForVideo(monitorVideo, performance.now());
+            const hit = sightings.update(collectSightings(result.detections || []), Date.now());
+            if (hit) {
+                emitSimple(
+                    'phone_detected',
+                    { kind: hit.kind, confidence: Number(hit.score.toFixed(2)), detail: `${hit.kind} (${Math.round(hit.score * 100)}% confidence)` },
+                    hit.box
+                );
             }
-        }, options.objectIntervalMs || 4500);
-        timers.push(timer);
+        } catch (err) {
+            fail(err);
+        } finally {
+            objectBusy = false;
+        }
     };
 
+    // ---- Audio
     const startAudio = async () => {
         if (!options.audioStream) return;
         try {
@@ -191,12 +289,12 @@ export async function startProctoring(options: ProctorOptions): Promise<() => vo
             source.connect(audioAnalyser);
             await audioCtx.resume();
         } catch (err) {
-            options.onError?.(err instanceof Error ? err : new Error(String(err)));
+            fail(err);
             return;
         }
 
         const buf = new Float32Array(audioAnalyser.fftSize);
-        const timer = setInterval(() => {
+        timers.push(setInterval(() => {
             if (disposed.value || !audioAnalyser) return;
             audioAnalyser.getFloatTimeDomainData(buf);
             let sum = 0;
@@ -207,26 +305,46 @@ export async function startProctoring(options: ProctorOptions): Promise<() => vo
             if (rms > threshold && rms > 0.045) {
                 audioVoicedStreak++;
                 if (audioVoicedStreak >= 4) {
-                    emit('voice_detected', { level: Number(rms.toFixed(3)) });
+                    emitSimple('voice_detected', { level: Number(rms.toFixed(3)) });
                     audioVoicedStreak = 0;
                 }
             } else {
                 audioVoicedStreak = 0;
             }
-        }, 300);
-        timers.push(timer);
+        }, 300));
     };
 
-    try {
-        await Promise.all([startFaceDetection(), startObjectDetection(), startAudio()]);
-    } catch (err) {
-        options.onError?.(err instanceof Error ? err : new Error(String(err)));
+    // Start the cheap, model-free camera check immediately, then load the models in the background
+    // so the student can begin the exam while they download. Status is reported as each one arrives.
+    timers.push(setInterval(checkCamera, 1000));
+    timers.push(setInterval(() => void faceTick(), options.faceIntervalMs || 1000));
+    timers.push(setInterval(() => void objectTick(), options.objectIntervalMs || 1500));
+    void startAudio();
+
+    const failures: string[] = [];
+    const note = (what: string, err: unknown) => {
+        failures.push(what);
+        fail(err);
+        pushStatus({ detail: `${failures.join(' and ')} could not be loaded` });
+    };
+    if (!videoTrack) {
+        // Audio-only exam: there is no camera to analyse, so there are no vision models to load.
+        pushStatus({ face: 'ready', object: 'ready' });
+    } else {
+        createWithRetry('face', () => disposed.value)
+            .then(d => { faceDetector = d; pushStatus({ face: 'ready' }); })
+            .catch(e => { if (!disposed.value) { pushStatus({ face: 'failed' }); note('face detection', e); } });
+        createWithRetry('object', () => disposed.value)
+            .then(d => { objectModel = d; pushStatus({ object: 'ready' }); })
+            .catch(e => { if (!disposed.value) { pushStatus({ object: 'failed' }); note('phone detection', e); } });
     }
 
     return () => {
         disposed.value = true;
         timers.forEach(t => clearInterval(t));
         monitorVideo.srcObject = null;
+        try { faceDetector?.close?.(); } catch { /* ignore */ }
+        try { objectModel?.close?.(); } catch { /* ignore */ }
         audioCtx?.close().catch(() => {});
     };
 }

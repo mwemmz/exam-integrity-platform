@@ -3,6 +3,9 @@ import { pool } from '../../db';
 
 import { authenticate } from '../../middleware/auth';
 import { broadcastAttemptUpdate } from '../../realtime';
+import { UPLOADS_DIR } from '../../config';
+import fs from 'fs';
+import path from 'path';
 
 const router = Router();
 
@@ -41,7 +44,8 @@ async function evaluateRules(attemptId: string | number): Promise<{ triggered: b
         return { triggered: true, rule: `Full-screen exited for more than ${MAX_FULLSCREEN_EXIT_SECONDS} seconds in total` };
     }
 
-    const faceMissingSeconds = sumSeconds('face_missing');
+    // A covered or blocked camera counts the same as "no face in view".
+    const faceMissingSeconds = sumSeconds('face_missing') + sumSeconds('camera_blocked');
     if (faceMissingSeconds > MAX_FACE_MISSING_SECONDS) {
         return { triggered: true, rule: `No face detected for more than ${MAX_FACE_MISSING_SECONDS} seconds in total` };
     }
@@ -54,9 +58,12 @@ async function evaluateRules(attemptId: string | number): Promise<{ triggered: b
     return { triggered: false };
 }
 
+const EVIDENCE_DATA_URL = /^data:image\/jpeg;base64,([A-Za-z0-9+/=]+)$/;
+const MAX_EVIDENCE_BYTES = 1_500_000;
+
 router.post('/:attemptId/event', authenticate, async (req: any, res: Response) => {
-    const { eventType, metadata } = req.body;
-    const validEvents = ['tab_switch', 'fullscreen_exit', 'paste_blocked', 'face_missing', 'multi_face', 'phone_detected', 'voice_detected', 'gaze_away'];
+    const { eventType, metadata, evidenceBase64 } = req.body;
+    const validEvents = ['tab_switch', 'fullscreen_exit', 'paste_blocked', 'face_missing', 'multi_face', 'phone_detected', 'voice_detected', 'gaze_away', 'camera_blocked', 'proctor_unavailable'];
     if (!validEvents.includes(eventType)) {
         return res.status(400).json({ error: 'Invalid event type' });
     }
@@ -65,9 +72,28 @@ router.post('/:attemptId/event', authenticate, async (req: any, res: Response) =
         const owned = await pool.query('SELECT 1 FROM exam_attempts WHERE id = $1 AND student_id = $2', [req.params.attemptId, req.user.userId]);
         if (!owned.rows.length) return res.status(403).json({ error: 'Not your attempt' });
 
+        // Optional evidence frame captured by the browser at the moment of the flag.
+        // Saved as a snapshot and linked to this event so the instructor sees *why* it was flagged.
+        const meta: Record<string, unknown> = metadata && typeof metadata === 'object' ? { ...metadata } : {};
+        const evidence = typeof evidenceBase64 === 'string' ? EVIDENCE_DATA_URL.exec(evidenceBase64) : null;
+        if (evidence) {
+            const buffer = Buffer.from(evidence[1], 'base64');
+            if (buffer.length <= MAX_EVIDENCE_BYTES) {
+                try {
+                    await fs.promises.mkdir(UPLOADS_DIR, { recursive: true });
+                    const filename = `evidence_${Number(req.params.attemptId)}_${eventType}_${Date.now()}.jpg`;
+                    await fs.promises.writeFile(path.join(UPLOADS_DIR, filename), buffer);
+                    meta.evidenceUrl = `/uploads/${filename}`;
+                    await pool.query('INSERT INTO webcam_snapshots (attempt_id, image_url) VALUES ($1, $2)', [req.params.attemptId, meta.evidenceUrl]);
+                } catch (e) {
+                    console.warn('[integrity] could not store evidence frame', e);
+                }
+            }
+        }
+
         await pool.query(
             'INSERT INTO integrity_events (attempt_id, event_type, metadata) VALUES ($1, $2, $3)',
-            [req.params.attemptId, eventType, metadata ? JSON.stringify(metadata) : null]
+            [req.params.attemptId, eventType, Object.keys(meta).length ? JSON.stringify(meta) : null]
         );
 
         const evaluation = await evaluateRules(req.params.attemptId);

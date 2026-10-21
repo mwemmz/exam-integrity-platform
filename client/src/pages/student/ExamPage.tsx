@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { api, getAuthUser } from '../../lib/api';
-import { startProctoring } from '../../lib/proctor';
+import { startProctoring, type ProctorStatus } from '../../lib/proctor';
 import { isOnline, loadAnswers, persistAnswers, clearAnswers, loadDirty, persistDirty, clearDirty } from '../../lib/offline';
 import { getSocket, joinExamRoom, leaveExamRoom } from '../../lib/socket';
 import type { ExamMessagePayload, TimeExtendedPayload, AttemptUpdatePayload } from '../../lib/socket';
@@ -45,7 +45,8 @@ export default function ExamPage() {
     const [submitting, setSubmitting] = useState(false);
     const [online, setOnline] = useState(() => isOnline());
     const [submitError, setSubmitError] = useState('');
-    const [proctorStatus, setProctorStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+    const [proctorStatus, setProctorStatus] = useState<'idle' | 'loading' | 'ready' | 'limited' | 'error'>('idle');
+    const [proctorNote, setProctorNote] = useState('');
     const [banner, setBanner] = useState('');
 
     const answersRef = useRef(answers);
@@ -64,12 +65,12 @@ export default function ExamPage() {
         document.exitFullscreen().catch(() => {});
     }, []);
 
-    const logEvent = useCallback(async (eventType: string, metadata?: Record<string, unknown>) => {
+    const logEvent = useCallback(async (eventType: string, metadata?: Record<string, unknown>, evidenceBase64?: string) => {
         if (phaseRef.current !== 'active') return;
         try {
             const res = await api<{ autoSubmitted: boolean; rule?: string }>(
                 `/api/integrity/${attemptId}/event`,
-                { method: 'POST', body: { eventType, metadata } }
+                { method: 'POST', body: { eventType, metadata, evidenceBase64 } }
             );
             if (res.autoSubmitted) lockExam(res.rule || 'Integrity rules were violated');
         } catch {
@@ -297,14 +298,26 @@ export default function ExamPage() {
                     video.srcObject = s;
                     await video.play().catch(() => {});
                 }
+                const reported = new Set<string>();
                 stopProctor = await startProctoring({
                     videoStream: s,
                     audioStream: audioEnabled ? s : undefined,
-                    onFlag: flag => void logEvent(flag.type, flag.metadata),
-                    onError: () => { /* keep monitoring degradable */ }
+                    onFlag: flag => void logEvent(flag.type, flag.metadata, flag.evidence),
+                    onError: () => { /* keep monitoring degradable; status is reported via onStatus */ },
+                    onStatus: (st: ProctorStatus) => {
+                        if (cancelled) return;
+                        const failed = (st.face === 'failed' ? 1 : 0) + (st.object === 'failed' ? 1 : 0);
+                        const loading = st.face === 'loading' || st.object === 'loading';
+                        setProctorStatus(failed === 2 ? 'error' : failed === 1 ? 'limited' : loading ? 'loading' : 'ready');
+                        setProctorNote(st.detail || '');
+                        // Tell the instructor (once per problem) when AI monitoring is not fully working for this student.
+                        if (failed && st.detail && !reported.has(st.detail)) {
+                            reported.add(st.detail);
+                            void logEvent('proctor_unavailable', { detail: st.detail });
+                        }
+                    }
                 });
                 if (cancelled) return;
-                setProctorStatus('ready');
                 if (webcamEnabled) {
                     snapIv = setInterval(async () => {
                         if (!video.videoWidth) return;
@@ -393,11 +406,17 @@ export default function ExamPage() {
                         <span className={`ml-2 text-[11px] px-2 py-0.5 rounded-full font-semibold align-middle ${
                             proctorStatus === 'ready'
                                 ? 'bg-emerald-500/20 border border-emerald-400/40 text-emerald-300'
-                                : proctorStatus === 'loading'
+                                : proctorStatus === 'loading' || proctorStatus === 'limited'
                                     ? 'bg-amber-500/20 border border-amber-400/40 text-amber-300'
                                     : 'bg-white/5 border border-white/15 text-slate-300'
-                        }`}>
-                            {proctorStatus === 'ready' ? 'AI monitoring active' : proctorStatus === 'loading' ? 'Starting AI monitoring…' : 'AI monitoring unavailable'}
+                        }`} title={proctorNote || undefined}>
+                            {proctorStatus === 'ready'
+                                ? 'AI monitoring active'
+                                : proctorStatus === 'loading'
+                                    ? 'Starting AI monitoring…'
+                                    : proctorStatus === 'limited'
+                                        ? 'AI monitoring limited'
+                                        : 'AI monitoring unavailable'}
                         </span>
                     )}
                     {!online && (

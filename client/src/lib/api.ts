@@ -1,12 +1,27 @@
 const BASE = import.meta.env.VITE_API_BASE_URL || '';
 
+// The session token lives in sessionStorage, which is scoped to a single browser tab.
+// That lets one tab be signed in as a student while another tab is signed in as a lecturer
+// (localStorage is shared by every tab, so a second login used to overwrite the first).
+const TOKEN_KEY = 'eip_token';
+
 export function getToken(): string | null {
-    return localStorage.getItem('eip_token');
+    try {
+        return sessionStorage.getItem(TOKEN_KEY);
+    } catch {
+        return null;
+    }
 }
 
 export function setToken(token: string | null) {
-    if (token) localStorage.setItem('eip_token', token);
-    else localStorage.removeItem('eip_token');
+    try {
+        // Remove the legacy shared key so an old login can never leak into new tabs.
+        localStorage.removeItem(TOKEN_KEY);
+    } catch { /* storage unavailable */ }
+    try {
+        if (token) sessionStorage.setItem(TOKEN_KEY, token);
+        else sessionStorage.removeItem(TOKEN_KEY);
+    } catch { /* storage unavailable */ }
 }
 
 export interface JwtPayload {
