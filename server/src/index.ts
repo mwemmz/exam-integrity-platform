@@ -28,7 +28,7 @@ app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: false }));
 
 app.get('/', (_req, res) => {
-    res.json({ status: 'ok', service: 'exam-integrity-server' });
+    res.json({ status: 'ok', service: 'exam-integrity-server', commit: (process.env.RENDER_GIT_COMMIT || 'local').slice(0, 7) });
 });
 
 app.use('/uploads', express.static(UPLOADS_DIR));

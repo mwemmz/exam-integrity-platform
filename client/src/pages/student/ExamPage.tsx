@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { api, getAuthUser } from '../../lib/api';
+import { api, ApiError, getAuthUser } from '../../lib/api';
 import { startProctoring, type ProctorStatus } from '../../lib/proctor';
 import { isOnline, loadAnswers, persistAnswers, clearAnswers, loadDirty, persistDirty, clearDirty } from '../../lib/offline';
 import { getSocket, joinExamRoom, leaveExamRoom } from '../../lib/socket';
@@ -48,6 +48,9 @@ export default function ExamPage() {
     const [proctorStatus, setProctorStatus] = useState<'idle' | 'loading' | 'ready' | 'limited' | 'error'>('idle');
     const [proctorNote, setProctorNote] = useState('');
     const [banner, setBanner] = useState('');
+    const [flagToast, setFlagToast] = useState('');
+    const [unsavedFlags, setUnsavedFlags] = useState(0);
+    const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const answersRef = useRef(answers);
     const dirtyRef = useRef<Set<number>>(loadDirty(attemptId));
@@ -67,16 +70,49 @@ export default function ExamPage() {
 
     const logEvent = useCallback(async (eventType: string, metadata?: Record<string, unknown>, evidenceBase64?: string) => {
         if (phaseRef.current !== 'active') return;
-        try {
-            const res = await api<{ autoSubmitted: boolean; rule?: string }>(
+        const post = (type: string, meta?: Record<string, unknown>) =>
+            api<{ autoSubmitted: boolean; rule?: string }>(
                 `/api/integrity/${attemptId}/event`,
-                { method: 'POST', body: { eventType, metadata, evidenceBase64 } }
+                { method: 'POST', body: { eventType: type, metadata: meta, evidenceBase64 } }
             );
-            if (res.autoSubmitted) lockExam(res.rule || 'Integrity rules were violated');
-        } catch {
-            // network hiccup: keep going rather than failing the student's exam
+
+        // Retry transient failures (server waking up, network blip) so a flag is not silently lost.
+        const delays = [0, 2000, 5000, 10000];
+        let type = eventType;
+        let meta = metadata;
+        for (let i = 0; i < delays.length; i++) {
+            if (delays[i]) await new Promise(r => setTimeout(r, delays[i]));
+            if (phaseRef.current !== 'active') return;
+            try {
+                const res = await post(type, meta);
+                if (res.autoSubmitted) lockExam(res.rule || 'Integrity rules were violated');
+                return;
+            } catch (err) {
+                if (err instanceof ApiError && err.status === 400) {
+                    // The server does not know this event type (older server build still running).
+                    // A covered camera is recorded as a missing face instead of being dropped.
+                    if (type === 'camera_blocked') { type = 'face_missing'; meta = { ...metadata, detail: 'camera covered or blocked' }; continue; }
+                    return;
+                }
+                if (err instanceof ApiError && (err.status === 401 || err.status === 403)) return;
+            }
         }
+        setUnsavedFlags(n => n + 1);
     }, [attemptId, lockExam]);
+
+    const announceFlag = useCallback((type: string) => {
+        const labels: Record<string, string> = {
+            face_missing: 'No face detected',
+            multi_face: 'More than one person detected',
+            phone_detected: 'Phone or other device detected',
+            voice_detected: 'Voice or loud noise detected',
+            gaze_away: 'Looking away from the screen',
+            camera_blocked: 'Camera is covered or blocked'
+        };
+        setFlagToast(labels[type] || 'Integrity flag');
+        if (toastTimer.current) clearTimeout(toastTimer.current);
+        toastTimer.current = setTimeout(() => setFlagToast(''), 8000);
+    }, []);
 
     const flushSaves = useCallback(async (): Promise<boolean> => {
         if (!isOnline()) return false;
@@ -302,7 +338,7 @@ export default function ExamPage() {
                 stopProctor = await startProctoring({
                     videoStream: s,
                     audioStream: audioEnabled ? s : undefined,
-                    onFlag: flag => void logEvent(flag.type, flag.metadata, flag.evidence),
+                    onFlag: flag => { announceFlag(flag.type); void logEvent(flag.type, flag.metadata, flag.evidence); },
                     onError: () => { /* keep monitoring degradable; status is reported via onStatus */ },
                     onStatus: (st: ProctorStatus) => {
                         if (cancelled) return;
@@ -346,7 +382,7 @@ export default function ExamPage() {
             if (snapIv) clearInterval(snapIv);
             mediaStream?.getTracks().forEach(t => t.stop());
         };
-    }, [webcamEnabled, audioEnabled, attemptId, logEvent]);
+    }, [webcamEnabled, audioEnabled, attemptId, logEvent, announceFlag]);
 
     const updateAnswer = (qid: number, value: string) => {
         setAnswers(prev => {
@@ -409,7 +445,7 @@ export default function ExamPage() {
                                 : proctorStatus === 'loading' || proctorStatus === 'limited'
                                     ? 'bg-amber-500/20 border border-amber-400/40 text-amber-300'
                                     : 'bg-white/5 border border-white/15 text-slate-300'
-                        }`} title={proctorNote || undefined}>
+                        }`} title={`${proctorNote ? proctorNote + ' · ' : ''}build ${__BUILD_ID__}`}>
                             {proctorStatus === 'ready'
                                 ? 'AI monitoring active'
                                 : proctorStatus === 'loading'
@@ -417,6 +453,11 @@ export default function ExamPage() {
                                     : proctorStatus === 'limited'
                                         ? 'AI monitoring limited'
                                         : 'AI monitoring unavailable'}
+                        </span>
+                    )}
+                    {unsavedFlags > 0 && (
+                        <span className="ml-2 text-[11px] px-2 py-0.5 rounded-full font-semibold align-middle bg-red-500/20 border border-red-400/50 text-red-200" title="These could not reach the server">
+                            {unsavedFlags} flag{unsavedFlags === 1 ? '' : 's'} not saved
                         </span>
                     )}
                     {!online && (
@@ -430,6 +471,11 @@ export default function ExamPage() {
             </div>
 
             <div className="max-w-3xl mx-auto p-4 sm:p-6 space-y-5">
+                {flagToast && (
+                    <div role="status" className="max-w-3xl mt-3 mx-3 sm:mx-auto rounded-lg border border-warm/45 bg-warm/12 text-warm-ink px-3 py-2 text-sm font-semibold">
+                        ⚠ {flagToast} — this is being recorded for your instructor.
+                    </div>
+                )}
                 {banner && (
                     <div className="glass-strong px-4 py-3 border border-warm/50 flex items-center justify-between gap-3">
                         <p className="text-sm text-ink-2 font-medium min-w-0">Instructor: {banner}</p>

@@ -96,7 +96,7 @@ export function frameStats(rgba: ArrayLike<number>): FrameStats {
 
 /** A frame is "blocked" when it is almost black or almost one flat colour (hand, paper, tape, lens cap). */
 export function isBlocked(s: FrameStats): boolean {
-    return s.mean < 18 || s.std < 7;
+    return s.mean < 18 || s.std < 10;
 }
 
 /** Head-pose heuristic from face keypoints (normalised 0..1 coordinates). Two consecutive hits are required by the caller. */
