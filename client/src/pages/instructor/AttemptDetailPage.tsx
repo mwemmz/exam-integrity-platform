@@ -146,6 +146,9 @@ export default function AttemptDetailPage() {
         phone_detected: 'border-warm/45 bg-warm/10 text-warm-ink',
         voice_detected: 'border-warm/45 bg-warm/10 text-warm-ink',
         gaze_away: 'border-warm/45 bg-warm/10 text-warm-ink',
+        camera_blocked: 'border-danger/30 bg-danger/8 text-danger',
+        proctor_unavailable: 'border-warm/45 bg-warm/10 text-warm-ink',
+        policy_flagged: 'border-warm/45 bg-warm/10 text-warm-ink',
         tab_switch: 'border-ink-2/15 bg-ink-2/5 text-ink-2',
         fullscreen_exit: 'border-ink-2/15 bg-ink-2/5 text-ink-2',
         paste_blocked: 'bg-ink/4 border border-line text-muted'
@@ -157,11 +160,14 @@ export default function AttemptDetailPage() {
         phone_detected: 'Phone / media device',
         voice_detected: 'Voice / loud noise',
         gaze_away: 'Looked away from screen',
+        camera_blocked: 'Camera covered / blocked',
+        proctor_unavailable: 'AI monitoring unavailable on student device',
+        policy_flagged: 'Flagged for review (rule)',
         tab_switch: 'Tab switch',
         fullscreen_exit: 'Full-screen exit',
         paste_blocked: 'Paste blocked'
     };
-    const flagEventTypes: Array<keyof typeof eventLabels> = ['auto_submit_triggered', 'face_missing', 'multi_face', 'phone_detected', 'voice_detected', 'gaze_away'];
+    const flagEventTypes: Array<keyof typeof eventLabels> = ['auto_submit_triggered', 'face_missing', 'multi_face', 'phone_detected', 'voice_detected', 'gaze_away', 'camera_blocked'];
 
     return (
         <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
@@ -268,30 +274,41 @@ export default function AttemptDetailPage() {
                             {flagEventTypes.map(t => {
                                 const n = data.events.filter(e => e.event_type === t).length;
                                 if (!n) return null;
-                                const red = t === 'auto_submit_triggered' || t === 'face_missing' || t === 'multi_face';
+                                const red = t === 'auto_submit_triggered' || t === 'face_missing' || t === 'multi_face' || t === 'camera_blocked';
                                 return <span key={t} className={`chip border ${red ? 'bg-danger/10 border-danger/25 text-danger' : 'bg-warm/12 border-warm/40 text-warm-ink'}`}>{eventLabels[t]}: {n}</span>;
                             })}
                         </div>
                         <div className="space-y-1">
-                            {data.events.map(ev => (
-                                <div key={ev.id} className={`rounded-lg border px-3 py-2 text-sm flex flex-wrap items-center justify-between gap-x-3 gap-y-1 ${eventStyles[ev.event_type] || 'bg-ink/4 border border-line text-muted'}`}>
-                                    <span className="min-w-0 font-semibold">{eventLabels[ev.event_type] || ev.event_type.replace(/_/g, ' ')}</span>
-                                    <span className="text-xs opacity-70 text-right ml-auto">
-                                        {ev.metadata && Object.keys(ev.metadata).length > 0 ? JSON.stringify(ev.metadata) : ''}
-                                        {'  '}{new Date(ev.timestamp).toLocaleTimeString()}
-                                    </span>
-                                </div>
-                            ))}
+                            {data.events.map(ev => {
+                                const meta = (ev.metadata || {}) as Record<string, unknown>;
+                                const { evidenceUrl, ...rest } = meta as { evidenceUrl?: string } & Record<string, unknown>;
+                                const text = typeof rest.detail === 'string'
+                                    ? rest.detail + (rest.seconds ? ` · ${String(rest.seconds)}s` : '')
+                                    : Object.keys(rest).length > 0 ? JSON.stringify(rest) : '';
+                                return (
+                                    <div key={ev.id} className={`rounded-lg border px-3 py-2 text-sm flex flex-wrap items-center justify-between gap-x-3 gap-y-1 ${eventStyles[ev.event_type] || 'bg-ink/4 border border-line text-muted'}`}>
+                                        <span className="min-w-0 font-semibold">{eventLabels[ev.event_type] || ev.event_type.replace(/_/g, ' ')}</span>
+                                        <span className="text-xs opacity-80 text-right ml-auto flex items-center gap-2">
+                                            <span>{text}{'  '}{new Date(ev.timestamp).toLocaleTimeString()}</span>
+                                            {evidenceUrl && (
+                                                <a href={fileUrl(evidenceUrl)} target="_blank" rel="noreferrer" title="Frame captured when this was flagged">
+                                                    <img src={fileUrl(evidenceUrl)} alt="Evidence frame" className="h-14 w-auto rounded border border-line" loading="lazy" />
+                                                </a>
+                                            )}
+                                        </span>
+                                    </div>
+                                );
+                            })}
                         </div>
                     </>
                 )}
             </section>
 
-            {data.snapshots.length > 0 && (
+            {data.snapshots.filter(s => !s.image_url.includes('/evidence_')).length > 0 && (
                 <section>
-                    <h2 className="font-extrabold mb-2 text-on-canvas">Webcam Snapshots ({data.snapshots.length})</h2>
+                    <h2 className="font-extrabold mb-2 text-on-canvas">Webcam Snapshots ({data.snapshots.filter(s => !s.image_url.includes('/evidence_')).length})</h2>
                     <div className="flex gap-3 scroll-x pb-2">
-                        {data.snapshots.map(s => (
+                        {data.snapshots.filter(s => !s.image_url.includes('/evidence_')).map(s => (
                             <figure key={s.id} className="shrink-0">
                                 <img src={fileUrl(s.image_url)} alt={`snapshot at ${s.captured_at}`} className="h-28 w-auto rounded-lg border border-line" />
                                 <figcaption className="text-[10px] text-muted mt-1">{new Date(s.captured_at).toLocaleTimeString()}</figcaption>
