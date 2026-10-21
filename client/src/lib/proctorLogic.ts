@@ -105,3 +105,69 @@ export function gazeOffset(rightEye: { x: number; y: number }, leftEye: { x: num
     const dz = Math.abs(nose.y - (rightEye.y + leftEye.y) / 2);
     return { dx, dz, away: Math.abs(dx) > 0.07 || dz > 0.09 };
 }
+
+// ---------------------------------------------------------------------------
+// YOLO11n (COCO) output decoding. The ONNX model takes a [1,3,H,W] RGB tensor scaled to 0..1 and returns
+// [1, 84, anchors]: rows 0-3 are the box centre/size in input pixels, rows 4-83 are the 80 class scores.
+// ---------------------------------------------------------------------------
+
+export const YOLO_WATCHED: Record<number, string> = {
+    62: 'tv',
+    63: 'laptop',
+    65: 'remote',
+    67: 'cell phone',
+    73: 'book'
+};
+
+/** Input size for the detector: 640 wide, height rounded to a multiple of 32 (the network's stride). */
+export function yoloInputSize(videoW: number, videoH: number, width = 640): { w: number; h: number } {
+    const ratio = videoW > 0 ? videoH / videoW : 0.75;
+    const h = Math.max(32, Math.round((width * ratio) / 32) * 32);
+    return { w: width, h };
+}
+
+function iou(a: DetectedBox, b: DetectedBox): number {
+    const x1 = Math.max(a.x, b.x);
+    const y1 = Math.max(a.y, b.y);
+    const x2 = Math.min(a.x + a.w, b.x + b.w);
+    const y2 = Math.min(a.y + a.h, b.y + b.h);
+    const inter = Math.max(0, x2 - x1) * Math.max(0, y2 - y1);
+    const union = a.w * a.h + b.w * b.h - inter;
+    return union > 0 ? inter / union : 0;
+}
+
+/**
+ * Turns raw YOLO output into MediaPipe-shaped detections ({ categories, boundingBox }) for the watched classes only,
+ * with per-class non-maximum suppression. `sx`/`sy` scale input-pixel boxes back to video pixels.
+ */
+export function decodeYolo(output: ArrayLike<number>, anchors: number, minScore: number, sx: number, sy: number, classes: Record<number, string> = YOLO_WATCHED): any[] {
+    const found: { cls: string; score: number; box: DetectedBox }[] = [];
+    for (const idxStr of Object.keys(classes)) {
+        const idx = Number(idxStr);
+        const row = (4 + idx) * anchors;
+        for (let i = 0; i < anchors; i++) {
+            const score = output[row + i];
+            if (score < minScore) continue;
+            const cx = output[i];
+            const cy = output[anchors + i];
+            const w = output[2 * anchors + i];
+            const h = output[3 * anchors + i];
+            found.push({
+                cls: classes[idx],
+                score,
+                box: { x: (cx - w / 2) * sx, y: (cy - h / 2) * sy, w: w * sx, h: h * sy }
+            });
+        }
+    }
+    found.sort((a, b) => b.score - a.score);
+    const kept: typeof found = [];
+    for (const f of found) {
+        if (kept.some(k => k.cls === f.cls && iou(k.box, f.box) > 0.5)) continue;
+        kept.push(f);
+        if (kept.length >= 20) break;
+    }
+    return kept.map(k => ({
+        categories: [{ categoryName: k.cls, score: k.score }],
+        boundingBox: { originX: k.box.x, originY: k.box.y, width: k.box.w, height: k.box.h }
+    }));
+}

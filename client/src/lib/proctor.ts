@@ -1,4 +1,4 @@
-import { SightingWindow, collectSightings, frameStats, gazeOffset, isBlocked, type DetectedBox } from './proctorLogic';
+import { SightingWindow, collectSightings, decodeYolo, frameStats, gazeOffset, isBlocked, yoloInputSize, type DetectedBox } from './proctorLogic';
 
 export type ProctorFlagType = 'face_missing' | 'multi_face' | 'phone_detected' | 'voice_detected' | 'gaze_away' | 'camera_blocked';
 
@@ -65,7 +65,7 @@ async function loadVisionModule(): Promise<any> {
 }
 
 /** Tries every runtime / model source and GPU then CPU, so one blocked host does not disable the detector. */
-async function createDetector(kind: 'face' | 'object'): Promise<any> {
+async function createMediaPipeDetector(kind: 'face' | 'object'): Promise<any> {
     const vision = await loadVisionModule();
     const Ctor = kind === 'face' ? vision.FaceDetector : vision.ObjectDetector;
     const models = kind === 'face' ? FACE_MODELS : OBJECT_MODELS;
@@ -88,6 +88,84 @@ async function createDetector(kind: 'face' | 'object'): Promise<any> {
         }
     }
     throw last instanceof Error ? last : new Error(`Could not load the ${kind} model`);
+}
+
+/** Anything that can look at a camera frame and return MediaPipe-shaped detections. */
+export interface ObjectDetectorLike {
+    name: string;
+    detect(source: HTMLVideoElement | HTMLCanvasElement | HTMLImageElement, width: number, height: number): Promise<any[]>;
+    close(): void;
+}
+
+const APP_BASE = import.meta.env.BASE_URL || '/';
+const YOLO_MODEL_URL = `${APP_BASE}models/yolo11n.onnx`;
+const ORT_WASM_PATH = `${APP_BASE}ort/`;
+const YOLO_MIN_SCORE = 0.15;
+
+/**
+ * YOLO11n (COCO) running fully in the browser through ONNX Runtime Web. It is a markedly stronger detector than
+ * EfficientDet-Lite0 (COCO mAP 39.5 vs 25.7) and is served from this site, so it needs no third-party host.
+ */
+export async function createYoloDetector(classes?: Record<number, string>): Promise<ObjectDetectorLike> {
+    const ort: any = await import('onnxruntime-web/wasm');
+    ort.env.wasm.wasmPaths = ORT_WASM_PATH;
+    ort.env.wasm.numThreads = 1; // multi-threading needs cross-origin isolation, which this site does not enable
+    const session = await ort.InferenceSession.create(YOLO_MODEL_URL, {
+        executionProviders: ['wasm'],
+        graphOptimizationLevel: 'all'
+    });
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) throw new Error('Canvas unavailable');
+    const inputName: string = session.inputNames[0];
+    const outputName: string = session.outputNames[0];
+
+    return {
+        name: 'yolo11n',
+        async detect(source, width, height) {
+            const { w, h } = yoloInputSize(width, height);
+            if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+            ctx.drawImage(source, 0, 0, w, h);
+            const rgba = ctx.getImageData(0, 0, w, h).data;
+            const plane = w * h;
+            const input = new Float32Array(3 * plane);
+            for (let i = 0; i < plane; i++) {
+                input[i] = rgba[i * 4] / 255;
+                input[plane + i] = rgba[i * 4 + 1] / 255;
+                input[2 * plane + i] = rgba[i * 4 + 2] / 255;
+            }
+            const out = await session.run({ [inputName]: new ort.Tensor('float32', input, [1, 3, h, w]) });
+            const t = out[outputName];
+            return decodeYolo(t.data as Float32Array, t.dims[2], YOLO_MIN_SCORE, width / w, height / h, classes);
+        },
+        close() { try { session.release?.(); } catch { /* ignore */ } }
+    };
+}
+
+async function createMediaPipeObjectDetector(): Promise<ObjectDetectorLike> {
+    const model = await createMediaPipeDetector('object');
+    return {
+        name: 'efficientdet-lite0',
+        async detect(source) {
+            const result = await model.detectForVideo(source as HTMLVideoElement, performance.now());
+            return result.detections || [];
+        },
+        close() { try { model.close?.(); } catch { /* ignore */ } }
+    };
+}
+
+/** Prefers YOLO11n; falls back to the MediaPipe model if the ONNX runtime or model cannot load. */
+async function createObjectDetector(): Promise<ObjectDetectorLike> {
+    try {
+        return await createYoloDetector();
+    } catch (e) {
+        console.warn('[proctor] YOLO detector unavailable, falling back to EfficientDet-Lite0', e);
+        return await createMediaPipeObjectDetector();
+    }
+}
+
+async function createDetector(kind: 'face' | 'object'): Promise<any> {
+    return kind === 'face' ? createMediaPipeDetector('face') : createObjectDetector();
 }
 
 async function createWithRetry(kind: 'face' | 'object', isDisposed: () => boolean): Promise<any> {
@@ -115,7 +193,7 @@ export async function startProctoring(options: ProctorOptions): Promise<() => vo
     const THROTTLE_MS: Record<string, number> = { phone_detected: 12000, gaze_away: 20000, voice_detected: 20000 };
 
     let faceDetector: any = null;
-    let objectModel: any = null;
+    let objectModel: ObjectDetectorLike | null = null;
     let audioCtx: AudioContext | null = null;
     let audioAnalyser: AnalyserNode | null = null;
     let audioBaseline = 0;
@@ -262,12 +340,12 @@ export async function startProctoring(options: ProctorOptions): Promise<() => vo
         if (disposed.value || objectBusy || !objectModel || !ready() || blockedNow) return;
         objectBusy = true;
         try {
-            const result: any = await objectModel.detectForVideo(monitorVideo, performance.now());
-            const hit = sightings.update(collectSightings(result.detections || []), Date.now());
+            const dets = await objectModel.detect(monitorVideo, monitorVideo.videoWidth, monitorVideo.videoHeight);
+            const hit = sightings.update(collectSightings(dets), Date.now());
             if (hit) {
                 emitSimple(
                     'phone_detected',
-                    { kind: hit.kind, confidence: Number(hit.score.toFixed(2)), detail: `${hit.kind} (${Math.round(hit.score * 100)}% confidence)` },
+                    { kind: hit.kind, model: objectModel?.name, confidence: Number(hit.score.toFixed(2)), detail: `${hit.kind} (${Math.round(hit.score * 100)}% confidence)` },
                     hit.box
                 );
             }
@@ -344,7 +422,7 @@ export async function startProctoring(options: ProctorOptions): Promise<() => vo
         timers.forEach(t => clearInterval(t));
         monitorVideo.srcObject = null;
         try { faceDetector?.close?.(); } catch { /* ignore */ }
-        try { objectModel?.close?.(); } catch { /* ignore */ }
+        try { objectModel?.close(); } catch { /* ignore */ }
         audioCtx?.close().catch(() => {});
     };
 }

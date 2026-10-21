@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { SightingWindow, collectSightings, frameStats, isBlocked, gazeOffset } from '../src/lib/proctorLogic.ts';
+import { SightingWindow, collectSightings, frameStats, isBlocked, gazeOffset, decodeYolo, yoloInputSize } from '../src/lib/proctorLogic.ts';
 
 const det = (name: string, score: number) => ({ categories: [{ categoryName: name, score }], boundingBox: { originX: 10, originY: 20, width: 50, height: 90 } });
 
@@ -43,4 +43,41 @@ test('normal textured frame is not blocked', () => assert.ok(!isBlocked(frameSta
 test('gaze: frontal ok, turned away flagged', () => {
   assert.equal(gazeOffset({x:.4,y:.4},{x:.6,y:.4},{x:.5,y:.45}).away, false);
   assert.equal(gazeOffset({x:.4,y:.4},{x:.6,y:.4},{x:.62,y:.45}).away, true);
+});
+
+// YOLO tensor layout is [84, anchors] channel-major: rows 0-3 box (cx,cy,w,h), rows 4.. class scores.
+function tensor(anchors: number, items: { a: number; cls: number; score: number; box: [number, number, number, number] }[]) {
+  const t = new Float32Array(84 * anchors);
+  for (const it of items) {
+    t[it.a] = it.box[0]; t[anchors + it.a] = it.box[1]; t[2 * anchors + it.a] = it.box[2]; t[3 * anchors + it.a] = it.box[3];
+    t[(4 + it.cls) * anchors + it.a] = it.score;
+  }
+  return t;
+}
+test('decodeYolo returns watched classes in MediaPipe shape with scaled boxes', () => {
+  const t = tensor(3, [{ a: 0, cls: 67, score: 0.8, box: [320, 240, 100, 200] }]);
+  const d = decodeYolo(t, 3, 0.15, 2, 2);
+  assert.equal(d.length, 1);
+  assert.equal(d[0].categories[0].categoryName, 'cell phone');
+  assert.deepEqual(d[0].boundingBox, { originX: 540, originY: 280, width: 200, height: 400 });
+});
+test('decodeYolo suppresses duplicates, ignores low scores and unwatched classes', () => {
+  const t = tensor(4, [
+    { a: 0, cls: 67, score: 0.8, box: [100, 100, 50, 80] },
+    { a: 1, cls: 67, score: 0.6, box: [102, 101, 50, 80] }, // overlapping duplicate
+    { a: 2, cls: 73, score: 0.1, box: [300, 300, 60, 60] }, // below min score
+    { a: 3, cls: 0, score: 0.95, box: [200, 200, 60, 160] } // person: not watched
+  ]);
+  const d = decodeYolo(t, 4, 0.15, 1, 1);
+  assert.equal(d.length, 1);
+  assert.equal(d[0].categories[0].score.toFixed(1), '0.8');
+});
+test('decoded phone feeds the sighting logic', () => {
+  const t = tensor(1, [{ a: 0, cls: 67, score: 0.41, box: [100, 100, 40, 70] }]);
+  const hit = new SightingWindow().update(collectSightings(decodeYolo(t, 1, 0.15, 1, 1)), 0);
+  assert.equal(hit?.kind, 'cell phone');
+});
+test('yolo input keeps aspect, multiple of 32', () => {
+  assert.deepEqual(yoloInputSize(640, 480), { w: 640, h: 480 });
+  assert.deepEqual(yoloInputSize(1280, 720), { w: 640, h: 352 });
 });

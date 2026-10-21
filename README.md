@@ -50,3 +50,10 @@ Apply new migrations to an existing database: `node server/scripts/migrate-live.
 - Self-registration is limited to student/instructor; auth endpoints are rate limited; Helmet is enabled.
 - Snapshot and integrity-event endpoints accept only the owning student's attempt.
 - Snapshots are stored under `UPLOADS_DIR`; mount a persistent volume (Render free disks are ephemeral).
+
+## Proctoring models
+
+- **Phones / devices / books / laptops:** YOLO11n (COCO) via ONNX Runtime Web. The model (`client/public/models/yolo11n.onnx`) and the WebAssembly runtime (copied to `client/public/ort` by `npm run build` / `npm run dev`) are served from this site, so no third-party host is needed. Falls back to MediaPipe EfficientDet-Lite0 if it cannot load.
+- **Faces / head pose:** MediaPipe BlazeFace (loaded from the MediaPipe CDN with a fallback host).
+- **Covered camera:** a model-free brightness/detail check.
+- **Licence note:** YOLO11 weights come from Ultralytics and are licensed AGPL-3.0 (an enterprise licence is available). That is fine for coursework; get a commercial licence, or swap in a permissively licensed detector (for example YOLOX, Apache-2.0), before selling this as a product. The detector sits behind `ObjectDetectorLike` in `client/src/lib/proctor.ts`, so it can be replaced in one place.
