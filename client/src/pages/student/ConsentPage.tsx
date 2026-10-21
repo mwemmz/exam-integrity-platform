@@ -26,14 +26,15 @@ export default function ConsentPage() {
             }
             if (webcamOk) {
                 try {
-                    await navigator.mediaDevices.getUserMedia({ video: true });
+                    // Permission probe only: release the camera straight away (the exam page opens its own stream).
+                    (await navigator.mediaDevices.getUserMedia({ video: true })).getTracks().forEach(t => t.stop());
                 } catch {
                     setWebcamOk(false); // denied: continue without snapshots
                 }
             }
             if (audioOk) {
                 try {
-                    await navigator.mediaDevices.getUserMedia({ audio: true });
+                    (await navigator.mediaDevices.getUserMedia({ audio: true })).getTracks().forEach(t => t.stop());
                 } catch {
                     setAudioOk(false); // denied: continue without voice detection
                 }

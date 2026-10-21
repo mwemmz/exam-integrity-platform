@@ -315,7 +315,12 @@ export default function ExamPage() {
         };
     }, [logEvent, flushSaves]);
 
+    // Once the exam is over (submitted or auto-submitted) the camera and microphone are released immediately,
+    // even though this screen stays up to show the result.
+    const examOver = phase === 'locked';
+
     useEffect(() => {
+        if (examOver) return;
         if (!webcamEnabled && !audioEnabled) return;
         let cancelled = false;
         let mediaStream: MediaStream | null = null;
@@ -381,8 +386,9 @@ export default function ExamPage() {
             stopProctor?.();
             if (snapIv) clearInterval(snapIv);
             mediaStream?.getTracks().forEach(t => t.stop());
+            setProctorStatus('idle');
         };
-    }, [webcamEnabled, audioEnabled, attemptId, logEvent, announceFlag]);
+    }, [webcamEnabled, audioEnabled, attemptId, logEvent, announceFlag, examOver]);
 
     const updateAnswer = (qid: number, value: string) => {
         setAnswers(prev => {
