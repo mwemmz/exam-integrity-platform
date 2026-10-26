@@ -50,6 +50,14 @@ export class ApiError extends Error {
     }
 }
 
+// Fired when a request fails because the session token itself is missing or invalid
+// (expired after its 1-hour lifetime, tampered, or signed before a server restart) —
+// as opposed to an ordinary 401/403 an endpoint raises for its own reasons (wrong
+// password, "not your exam", wrong role). The auth middleware is the only thing that
+// replies with a `message` field; every application-level check below it replies with
+// an `error` field instead, so that difference is what tells the two apart here.
+export const SESSION_EXPIRED_EVENT = 'eip:session-expired';
+
 export async function api<T = any>(path: string, options: { method?: string; body?: any } = {}): Promise<T> {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     const token = getToken();
@@ -68,7 +76,14 @@ export async function api<T = any>(path: string, options: { method?: string; bod
         data = {};
     }
 
-    if (!res.ok) throw new ApiError(res.status, data);
+    if (!res.ok) {
+        if (token && (res.status === 401 || res.status === 403) && typeof data?.message === 'string') {
+            setToken(null);
+            try { sessionStorage.setItem('eip_session_expired', '1'); } catch { /* storage unavailable */ }
+            window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+        }
+        throw new ApiError(res.status, data);
+    }
     return data as T;
 }
 

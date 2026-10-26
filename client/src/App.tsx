@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { getToken, getAuthUser, setToken } from './lib/api';
-import { useState } from 'react';
+import { getToken, getAuthUser, setToken, SESSION_EXPIRED_EVENT } from './lib/api';
+import { useEffect, useState } from 'react';
 import LoginPage from './pages/LoginPage';
 import StudentDashboard from './pages/student/StudentDashboard';
 import ConsentPage from './pages/student/ConsentPage';
@@ -36,6 +36,16 @@ export default function App() {
         setToken(null);
         setTick(t => t + 1);
     };
+
+    // A tab left open past the token's 1-hour lifetime (common on the instructor dashboard
+    // while watching an exam run) used to leave the page signed-in-looking but silently
+    // failing with 403s on every request. Any API call that detects an expired/invalid
+    // token signs the tab out and bounces it to the login screen instead.
+    useEffect(() => {
+        const onExpired = () => setTick(t => t + 1);
+        window.addEventListener(SESSION_EXPIRED_EVENT, onExpired);
+        return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onExpired);
+    }, []);
 
     const home =
         !authed ? '/login'

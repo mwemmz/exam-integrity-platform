@@ -4,6 +4,16 @@ import { api, setToken, getAuthUser } from '../lib/api';
 import ThemeDots from '../components/ThemeDots';
 import { IconLogo } from '../components/Icons';
 
+function consumeSessionExpiredFlag(): boolean {
+    try {
+        if (sessionStorage.getItem('eip_session_expired') !== '1') return false;
+        sessionStorage.removeItem('eip_session_expired');
+        return true;
+    } catch {
+        return false;
+    }
+}
+
 export default function LoginPage({ onAuthed }: { onAuthed: () => void }) {
     const navigate = useNavigate();
     const [mode, setMode] = useState<'login' | 'register'>('login');
@@ -13,6 +23,7 @@ export default function LoginPage({ onAuthed }: { onAuthed: () => void }) {
     const [role, setRole] = useState('student');
     const [error, setError] = useState('');
     const [busy, setBusy] = useState(false);
+    const [sessionExpired] = useState(consumeSessionExpiredFlag);
 
     const submit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -52,6 +63,12 @@ export default function LoginPage({ onAuthed }: { onAuthed: () => void }) {
                 <p className="text-sm text-muted mb-6">
                     {mode === 'login' ? 'Sign in to continue' : 'Create your account'}
                 </p>
+
+                {sessionExpired && (
+                    <div className="mb-4 text-sm text-ink-2 bg-accent/10 border border-accent/25 rounded-lg px-3 py-2">
+                        Your session expired after a period of inactivity. Please log in again.
+                    </div>
+                )}
 
                 <form onSubmit={submit} className="space-y-4">
                     {mode === 'register' && (
