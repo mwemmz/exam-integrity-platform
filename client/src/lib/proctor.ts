@@ -246,7 +246,11 @@ export async function startProctoring(options: ProctorOptions): Promise<() => vo
         const now = Date.now();
         if (now - (lastSent.get(type) || 0) < (THROTTLE_MS[type] || 20000)) return;
         lastSent.set(type, now);
-        options.onFlag({ type, metadata, evidence: type === 'voice_detected' ? undefined : captureEvidence(box) });
+        // Every flag type gets a camera snapshot where one is available, including voice_detected:
+        // even though the trigger was audio, the frame at that moment (a second person in view,
+        // the student not facing the screen) is still useful context for the reviewer.
+        // captureEvidence() already degrades to undefined on an audio-only exam with no camera.
+        options.onFlag({ type, metadata, evidence: captureEvidence(box) });
     };
 
     /** Called every tick while a condition holds; emits once it has lasted `afterMs`, then every 15 s. */
@@ -291,7 +295,10 @@ export async function startProctoring(options: ProctorOptions): Promise<() => vo
             } catch { /* tainted or unavailable frame: ignore */ }
         }
         blockedNow = blocked;
-        emitDuration('camera_blocked', blocked, 5000, blocked ? { detail } : {});
+        // 3s sustained (3 consecutive 1s checks), not 5s: long enough to ignore a single bad frame
+        // or someone briefly leaning in front of the lens, short enough that a real test of "hold
+        // something over the camera for a few seconds" still produces a flag.
+        emitDuration('camera_blocked', blocked, 3000, blocked ? { detail } : {});
     };
 
     // ---- Faces
@@ -337,7 +344,12 @@ export async function startProctoring(options: ProctorOptions): Promise<() => vo
     // ---- Phones and other devices
     let objectBusy = false;
     const objectTick = async () => {
-        if (disposed.value || objectBusy || !objectModel || !ready() || blockedNow) return;
+        // Deliberately does NOT skip on blockedNow: a phone held close to or against the lens is
+        // exactly the frame the brightness/variance heuristic calls "blocked" (dark, low detail) —
+        // skipping the object detector there used to mean that exact case never got a chance to be
+        // recognised as a phone at all, and silently fell back on camera_blocked's own 5s-sustained
+        // threshold, so a quick test produced no flag of either kind.
+        if (disposed.value || objectBusy || !objectModel || !ready()) return;
         objectBusy = true;
         try {
             const dets = await objectModel.detect(monitorVideo, monitorVideo.videoWidth, monitorVideo.videoHeight);
