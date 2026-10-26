@@ -1,0 +1,28 @@
+name: Keep Render services awake
+
+# Render's free plan spins a web service down after 15 minutes with no traffic, and the next
+# request then pays a slow "cold start" while it wakes back up. This pings both services often
+# enough that they never go idle long enough to spin down.
+#
+# Caveats worth knowing:
+# - GitHub's scheduled workflows are best-effort, not exact: a run can be delayed by a few
+#   minutes under load, so this reduces cold starts, it doesn't guarantee zero.
+# - GitHub disables a scheduled workflow automatically after 60 days with no commits to the
+#   repository. A new commit (to any branch) re-enables it.
+# - This is a workaround, not a fix: if the free-tier spin-down ever becomes a real problem
+#   (e.g. during the live pitch/demo), the reliable fix is Render's paid plan, which has no
+#   spin-down at all.
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping server
+        run: curl -fsS --max-time 30 https://exam-integrity-server.onrender.com/ || echo "server ping failed (likely still waking up)"
+      - name: Ping client
+        run: curl -fsS --max-time 30 https://exam-integrity-client.onrender.com/ || echo "client ping failed (likely still waking up)"
