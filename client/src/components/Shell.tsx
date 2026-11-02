@@ -77,7 +77,7 @@ export default function Shell({ role, onLogout, children }: { role: string; onLo
             </aside>
 
             {/* mobile top bar + drawer */}
-            <header className="md:hidden sticky top-0 z-40 flex items-center justify-between bg-chrome px-4 py-3 text-chrome-ink">
+            <header className="mobile-shell-header md:hidden sticky top-0 z-40 flex items-center justify-between bg-chrome px-4 py-3 text-chrome-ink">
                 <Brand />
                 <button onClick={() => setOpen(true)} aria-label="Open menu" className="rounded-lg p-2 hover:bg-chrome-ink/10"><IconMenu /></button>
             </header>

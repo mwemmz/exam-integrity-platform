@@ -298,10 +298,10 @@ export default function InstructorDashboard() {
     };
 
     return (
-        <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
+        <div className="dashboard-page max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
             <div className="flex items-center justify-between gap-3 flex-wrap">
                 <h1 className="text-[2rem] font-extrabold tracking-tight text-on-canvas">Instructor Dashboard</h1>
-                <div className="flex gap-2 flex-wrap">
+                <div className="dashboard-actions flex gap-2 flex-wrap">
                     <Link to="/instructor/violations" className="btn-soft px-4 py-2 text-sm">Violation Tracker</Link>
                     <button onClick={() => setShowGroups(v => !v)} className="btn-soft px-4 py-2 text-sm">{showGroups ? 'Done' : 'Manage groups'}</button>
                     <button
@@ -468,7 +468,7 @@ export default function InstructorDashboard() {
                     <p className="text-muted text-sm">No exams yet — click “+ New Exam” to build your first one.</p>
                 )}
                 {exams.map(exam => (
-                    <div key={exam.id} className="glass glass-glow p-5 flex flex-wrap items-center justify-between gap-3">
+                    <div key={exam.id} className="exam-card glass glass-glow p-5 flex flex-wrap items-center justify-between gap-3">
                         <div className="min-w-0">
                             <p className="font-extrabold text-ink break-words">{exam.title}</p>
                             <p className="text-xs text-muted mt-0.5 break-words">
@@ -491,7 +491,7 @@ export default function InstructorDashboard() {
                                 <p className="text-[11px] text-warm-ink mt-1 font-medium">Draft — not visible to students yet.</p>
                             ))}
                         </div>
-                        <div className="flex gap-2 flex-wrap">
+                        <div className="exam-actions flex gap-2 flex-wrap">
                             <Link to={`/instructor/exams/${exam.id}/gradebook`} className="btn-light px-3 py-1.5 text-xs">Gradebook</Link>
                             <Link to={`/instructor/exams/${exam.id}/live`} className="btn-light px-3 py-1.5 text-xs border-ok/30 text-ok">Live</Link>
                             <button onClick={() => void openAccommodations(exam)} className="btn-light px-3 py-1.5 text-xs border-ink-2/25">Accommodations</button>

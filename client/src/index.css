@@ -262,6 +262,7 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  min-width: 320px;
 }
 
 body {
@@ -274,6 +275,83 @@ body {
   background-attachment: fixed;
   background-color: var(--canvas);
   transition: background-color 0.25s ease, color 0.25s ease;
+  min-height: 100dvh;
+  overscroll-behavior-x: none;
+}
+
+button, a, input, select, textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button, a {
+  touch-action: manipulation;
+}
+
+.mobile-shell-header {
+  padding-top: max(0.75rem, env(safe-area-inset-top));
+}
+
+@media (max-width: 640px) {
+  .mobile-shell-header {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+
+  .dashboard-page {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+  }
+
+  .dashboard-page > div:first-child {
+    align-items: stretch;
+  }
+
+  .dashboard-page h1 {
+    font-size: 1.65rem;
+    line-height: 1.15;
+  }
+
+  .dashboard-actions,
+  .exam-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .dashboard-actions > *,
+  .exam-actions > *,
+  .dashboard-page .btn-primary,
+  .dashboard-page .btn-light {
+    min-height: 44px;
+    width: 100%;
+    text-align: center;
+  }
+
+  .exam-card {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .exam-card .btn-primary,
+  .exam-card .btn-light {
+    white-space: normal;
+  }
+}
+
+@media (max-width: 380px) {
+  .dashboard-actions,
+  .exam-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .btn-primary:hover,
+  .btn-secondary:hover,
+  .glass-glow:hover {
+    transform: none;
+  }
 }
 
 h1, h2, h3 {

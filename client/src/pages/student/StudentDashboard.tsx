@@ -29,7 +29,7 @@ export default function StudentDashboard() {
     if (loading) return <div className="p-8 text-muted">Loading exams…</div>;
 
     return (
-        <div className="max-w-3xl mx-auto p-4 sm:p-6">
+        <div className="dashboard-page max-w-3xl mx-auto p-4 sm:p-6">
             <h1 className="text-[2rem] font-extrabold tracking-tight text-on-canvas">My Exams</h1>
             <p className="text-sm text-muted mb-6">Exams available to you right now.</p>
 
@@ -56,7 +56,7 @@ export default function StudentDashboard() {
 
             <div className="space-y-3">
                 {exams.map((exam, i) => (
-                    <div key={exam.id} className={`tinted ${TINTS[i % 3]} glass-glow p-4 sm:p-5 flex items-center justify-between gap-3`}>
+                    <div key={exam.id} className={`exam-card tinted ${TINTS[i % 3]} glass-glow p-4 sm:p-5 flex items-center justify-between gap-3`}>
                         <div className="min-w-0">
                             <div className="font-extrabold text-ink break-words">{exam.title}</div>
                             {exam.description && <div className="text-sm text-ink-soft mt-0.5">{exam.description}</div>}
