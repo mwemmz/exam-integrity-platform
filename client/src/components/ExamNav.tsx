@@ -14,9 +14,11 @@ const LINKS: { page: Page; label: string }[] = [
 export default function ExamNav({ examId, current }: { examId: string | undefined; current: Page }) {
     return (
         <>
-            {LINKS.filter(l => l.page !== current).map(l => (
+            {LINKS.map(l => l.page === current ? (
+                <span key={l.page} aria-current="page" className="px-3 py-1.5 text-xs font-bold rounded-lg bg-ink text-white">{l.label}</span>
+            ) : (
                 <Link key={l.page} to={`/instructor/exams/${examId}/${l.page}`} className="btn-soft px-3 py-1.5 text-xs">{l.label}</Link>
             ))}
-        </>
+        </>>
     );
 }
