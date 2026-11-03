@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, setToken, getAuthUser } from '../lib/api';
 import ThemeDots from '../components/ThemeDots';
-import { IconLogo } from '../components/Icons';
 
 function consumeSessionExpiredFlag(): boolean {
     try {
@@ -56,7 +55,7 @@ export default function LoginPage({ onAuthed }: { onAuthed: () => void }) {
             </div>
             <div className="w-full max-w-sm glass-strong p-6 sm:p-8">
                 <div className="mb-5 flex items-center justify-between">
-                    <span className="grid h-11 w-11 place-items-center rounded-[var(--radius-ctl)] bg-accent text-accent-ink shadow-lg"><IconLogo size={24} /></span>
+                    <span className="grid h-11 w-11 place-items-center rounded-[var(--radius-ctl)] bg-white text-accent-ink shadow-lg"><img src="/logo-mark.png" alt="ExamTech" className="h-7 w-7 object-contain" /></span>
                     <ThemeDots className="text-ink" />
                 </div>
                 <h1 className="text-[1.45rem] font-extrabold tracking-tight text-ink">Exam Integrity Platform</h1>
