@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api } from '../../lib/api';
+import ExamNav from '../../components/ExamNav';
 
 interface Overall {
     total_attempts: number;
@@ -52,9 +53,14 @@ export default function AnalyticsPage() {
 
     return (
         <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
-            <div>
-                <Link to={`/instructor/exams/${examId}/live`} className="text-accent hover:text-accent-strong hover:underline text-sm font-medium">← Back to live view</Link>
-                <h1 className="text-[2rem] font-extrabold tracking-tight text-on-canvas">{exam ? `${exam.title} — Analytics` : 'Analytics'}</h1>
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div>
+                    <Link to="/instructor" className="text-accent hover:text-accent-strong hover:underline text-sm font-medium">← All exams</Link>
+                    <h1 className="text-[2rem] font-extrabold tracking-tight text-on-canvas">{exam ? `${exam.title} — Analytics` : 'Analytics'}</h1>
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                    <ExamNav examId={examId} current="analytics" />
+                </div>
             </div>
             {error && <div className="text-sm text-danger bg-danger/8 border border-danger/25 rounded-lg px-3 py-2">{error}</div>}
             {!data && !error && <p className="text-muted">Loading analytics…</p>}

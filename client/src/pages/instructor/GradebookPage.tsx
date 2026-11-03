@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api, getToken } from '../../lib/api';
+import ExamNav from '../../components/ExamNav';
 
 interface Exam {
     id: number;
@@ -124,8 +125,7 @@ export default function GradebookPage() {
                     <h1 className="text-[2rem] font-extrabold tracking-tight text-on-canvas">{exam ? exam.title : 'Gradebook'}</h1>
                 </div>
                 <div className="flex gap-2 flex-wrap">
-                    <Link to={`/instructor/exams/${examId}/analytics`} className="btn-soft px-3 py-1.5 text-xs">Analytics</Link>
-                    <Link to={`/instructor/exams/${examId}/similarity`} className="btn-soft px-3 py-1.5 text-xs">Similarity</Link>
+                    <ExamNav examId={examId} current="gradebook" />
                     <button onClick={() => void exportCsv()} className="btn-soft px-3 py-1.5 text-xs">Export CSV</button>
                 </div>
             </div>
