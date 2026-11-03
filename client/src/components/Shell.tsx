@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { IconAdmin, IconClose, IconExams, IconLogo, IconLogout, IconMenu, IconPalette, IconShield } from './Icons';
+import { IconAdmin, IconClose, IconExams, IconLogout, IconMenu, IconPalette, IconShield } from './Icons';
 import ThemeDots from './ThemeDots';
 
 interface NavDef {
@@ -28,7 +28,7 @@ function navFor(role: string): NavDef[] {
 function Brand() {
     return (
         <div className="flex items-center gap-3 px-1">
-            <span className="grid h-10 w-10 place-items-center rounded-[var(--radius-ctl)] bg-chrome-active text-chrome-active-ink shadow-md"><IconLogo size={22} /></span>
+            <span className="grid h-10 w-10 place-items-center rounded-[var(--radius-ctl)] bg-white text-chrome-active-ink shadow-md"><img src="/logo-mark.png" alt="ExamTech" className="h-6 w-6 object-contain" /></span>
             <span className="leading-tight">
                 <span className="block text-[1.05rem] font-extrabold tracking-tight">ExamTech</span>
                 <span className="block text-[0.7rem] font-semibold text-chrome-muted">Exam Integrity Platform</span>
