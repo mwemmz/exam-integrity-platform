@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api } from '../../lib/api';
+import ExamNav from '../../components/ExamNav';
 import { getSocket, joinExamRoom, leaveExamRoom } from '../../lib/socket';
 import type { AttemptUpdatePayload, TimeExtendedPayload } from '../../lib/socket';
 
@@ -158,9 +159,8 @@ export default function LiveDashboard() {
                     <Link to="/instructor" className="text-accent hover:text-accent-strong hover:underline text-sm font-medium">← All exams</Link>
                     <h1 className="text-[2rem] font-extrabold tracking-tight text-on-canvas">{exam ? `${exam.title} — Live` : 'Live Monitoring'}</h1>
                 </div>
-                <div className="flex gap-2">
-                    <Link to={`/instructor/exams/${examId}/analytics`} className="btn-soft px-4 py-2 text-sm">Analytics</Link>
-                    <Link to={`/instructor/exams/${examId}/gradebook`} className="btn-soft px-4 py-2 text-sm">Gradebook</Link>
+                <div className="flex gap-2 flex-wrap">
+                    <ExamNav examId={examId} current="live" />
                 </div>
             </div>
 

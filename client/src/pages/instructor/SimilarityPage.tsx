@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api } from '../../lib/api';
+import ExamNav from '../../components/ExamNav';
 
 interface Match {
     questionId: number;
@@ -37,7 +38,12 @@ export default function SimilarityPage() {
 
     return (
         <div className="space-y-4">
-            <Link to={`/instructor/exams/${examId}/gradebook`} className="text-accent hover:text-accent-strong hover:underline text-sm font-medium">← Gradebook</Link>
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+                <Link to={`/instructor/exams/${examId}/gradebook`} className="text-accent hover:text-accent-strong hover:underline text-sm font-medium">← Gradebook</Link>
+                <div className="flex gap-2 flex-wrap">
+                    <ExamNav examId={examId} current="similarity" />
+                </div>
+            </div>
             <h1 className="text-2xl font-extrabold text-ink">Answer similarity check</h1>
             <p className="text-sm text-muted">
                 Compares written answers (essay and practical) between students on the same question. A high score is a prompt
