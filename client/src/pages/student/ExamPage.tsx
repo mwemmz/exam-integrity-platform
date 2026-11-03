@@ -6,6 +6,9 @@ import { isOnline, loadAnswers, persistAnswers, clearAnswers, loadDirty, persist
 import { getSocket, joinExamRoom, leaveExamRoom } from '../../lib/socket';
 import type { ExamMessagePayload, TimeExtendedPayload, AttemptUpdatePayload } from '../../lib/socket';
 
+// How often a webcam frame is saved for the instructor during a sitting (kept modest so storage stays small).
+const SNAPSHOT_INTERVAL_MS = 30000;
+
 interface Question {
     id: number;
     type: string;
@@ -326,6 +329,7 @@ export default function ExamPage() {
         let mediaStream: MediaStream | null = null;
         let stopProctor: (() => void) | null = null;
         let snapIv: ReturnType<typeof setInterval> | null = null;
+        let snapFirst: ReturnType<typeof setTimeout> | null = null;
         setProctorStatus('loading');
 
         navigator.mediaDevices.getUserMedia({ video: !!webcamEnabled, audio: !!audioEnabled })
@@ -360,21 +364,26 @@ export default function ExamPage() {
                 });
                 if (cancelled) return;
                 if (webcamEnabled) {
-                    snapIv = setInterval(async () => {
-                        if (!video.videoWidth) return;
+                    // Constant snapshots: one frame at the start, then one every SNAPSHOT_INTERVAL_MS for the whole
+                    // sitting, so the instructor has a continuous visual record and not only flagged moments.
+                    const sendSnapshot = async () => {
+                        if (cancelled || !video.videoWidth || !navigator.onLine) return;
+                        const w = 480;
                         const canvas = document.createElement('canvas');
-                        canvas.width = video.videoWidth;
-                        canvas.height = video.videoHeight;
-                        canvas.getContext('2d')?.drawImage(video, 0, 0);
+                        canvas.width = w;
+                        canvas.height = Math.round((video.videoHeight / video.videoWidth) * w);
+                        canvas.getContext('2d')?.drawImage(video, 0, 0, canvas.width, canvas.height);
                         try {
                             await api(`/api/snapshots/${attemptId}/snapshot`, {
                                 method: 'POST',
                                 body: { imageBase64: canvas.toDataURL('image/jpeg', 0.6) }
                             });
                         } catch {
-                            // ignore snapshot upload failures
+                            // a missed snapshot is skipped; the next one is only SNAPSHOT_INTERVAL_MS away
                         }
-                    }, 60000);
+                    };
+                    snapFirst = setTimeout(() => void sendSnapshot(), 3000);
+                    snapIv = setInterval(() => void sendSnapshot(), SNAPSHOT_INTERVAL_MS);
                 }
             })
             .catch(() => {
@@ -385,6 +394,7 @@ export default function ExamPage() {
             cancelled = true;
             stopProctor?.();
             if (snapIv) clearInterval(snapIv);
+            if (snapFirst) clearTimeout(snapFirst);
             mediaStream?.getTracks().forEach(t => t.stop());
             setProctorStatus('idle');
         };
