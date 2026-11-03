@@ -81,13 +81,17 @@ router.post('/launch', async (req: Request, res: Response) => {
 });
 
 // Send one attempt's score back to the LMS gradebook. Returns false if not applicable.
+// Only released grades are sent: a score goes to Moodle after the instructor releases grades, so an
+// unmarked essay never shows up as a low mark in the Moodle gradebook.
 export async function passbackAttempt(attemptId: number): Promise<boolean> {
     if (!ltiEnabled()) return false;
     const r = await pool.query(
         `SELECT a.student_id, a.exam_id, a.total_score,
                 (SELECT COALESCE(SUM(points), 0) FROM questions WHERE exam_id = a.exam_id) AS max_points,
                 o.service_url, o.sourcedid
-         FROM exam_attempts a JOIN lti_outcomes o ON o.user_id = a.student_id AND o.exam_id = a.exam_id
+         FROM exam_attempts a
+         JOIN exams e ON e.id = a.exam_id AND e.grades_released = TRUE
+         JOIN lti_outcomes o ON o.user_id = a.student_id AND o.exam_id = a.exam_id
          WHERE a.id = $1`,
         [attemptId]
     );
@@ -101,6 +105,15 @@ export async function passbackAttempt(attemptId: number): Promise<boolean> {
     }
 }
 
+// Send every finished attempt of an exam to the LMS (used when grades are released).
+export async function passbackExam(examId: number | string): Promise<number> {
+    if (!ltiEnabled()) return 0;
+    const attempts = await pool.query("SELECT id FROM exam_attempts WHERE exam_id = $1 AND status <> 'in_progress'", [examId]);
+    let sent = 0;
+    for (const a of attempts.rows) if (await passbackAttempt(a.id)) sent++;
+    return sent;
+}
+
 // Instructor: push all current scores for an exam to the LMS (e.g. after manual grading).
 router.post('/sync/:examId', authenticate, async (req: any, res: Response) => {
     if (req.user.role !== 'instructor') return res.status(403).json({ error: 'Unauthorized' });
@@ -108,8 +121,7 @@ router.post('/sync/:examId', authenticate, async (req: any, res: Response) => {
     const own = await pool.query('SELECT 1 FROM exams WHERE id = $1 AND instructor_id = $2', [req.params.examId, req.user.userId]);
     if (!own.rows.length) return res.status(403).json({ error: 'Not your exam' });
     const attempts = await pool.query("SELECT id FROM exam_attempts WHERE exam_id = $1 AND status <> 'in_progress'", [req.params.examId]);
-    let sent = 0;
-    for (const a of attempts.rows) if (await passbackAttempt(a.id)) sent++;
+    const sent = await passbackExam(req.params.examId);
     res.json({ attempts: attempts.rows.length, sent });
 });
 

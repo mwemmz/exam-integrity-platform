@@ -23,7 +23,7 @@ instructor review tools, answer-similarity checks and Moodle (LTI) integration.
 - Software-only proctoring cannot see a second device outside the camera and can false-flag (lighting, movement).
   Use `flag_only` for high-stakes exams so a human decides.
 - The similarity check compares students *within one exam*; it is not an internet plagiarism database.
-- LTI is 1.1 (Moodle "External tool"); LTI 1.3 is not implemented. Verify against your Moodle before a pilot.
+- LTI is 1.1 (Moodle "External tool"); LTI 1.3 is not implemented. The launch and grade return were tested end to end against a real Moodle 4.5 install (see `server/scripts/moodle-test`). Still verify against the pilot institution's own Moodle version before a pilot.
 - Free-tier hosting is not in-country. For Data Protection Act compliance deploy to Zambian infrastructure.
 
 ## Run locally

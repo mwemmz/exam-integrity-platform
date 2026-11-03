@@ -2,6 +2,7 @@
 import { pool } from '../db';
 import { authenticate } from '../middleware/auth';
 import { emitToExam, broadcastAttemptUpdate } from '../realtime';
+import { passbackAttempt, passbackExam } from './lti';
 
 const router = Router();
 
@@ -270,6 +271,7 @@ router.post('/exams/:examId/bulk/release', authenticate, async (req: any, res: R
             "UPDATE exams SET grades_released = TRUE WHERE id = $1 AND EXISTS (SELECT 1 FROM exam_attempts WHERE exam_id = $1 AND id = ANY($2))",
             [req.params.examId, attemptIds]
         );
+        void passbackExam(req.params.examId);
         res.json({ message: 'Grades released for the exam' });
     } catch (error) {
         res.status(500).json({ error: 'Failed to release grades' });
@@ -672,6 +674,7 @@ router.post('/attempts/:attemptId/grade', authenticate, async (req: any, res: Re
             [req.params.attemptId]
         );
         await pool.query('UPDATE exam_attempts SET total_score = $1 WHERE id = $2', [total.rows[0].total, req.params.attemptId]);
+        void passbackAttempt(Number(req.params.attemptId)); // no-op until grades are released
 
         res.json({ message: 'Grade updated', totalScore: total.rows[0].total });
     } catch (error) {
@@ -687,6 +690,7 @@ router.post('/exams/:examId/release', authenticate, async (req: any, res: Respon
             'UPDATE exams SET grades_released = $1 WHERE id = $2 AND instructor_id = $3',
             [!!gradesReleased, req.params.examId, req.user.userId]
         );
+        if (gradesReleased) void passbackExam(req.params.examId);
         res.json({ gradesReleased: !!gradesReleased });
     } catch (error) {
         res.status(500).json({ error: 'Failed to update release status' });
