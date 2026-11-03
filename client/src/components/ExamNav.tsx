@@ -19,6 +19,6 @@ export default function ExamNav({ examId, current }: { examId: string | undefine
             ) : (
                 <Link key={l.page} to={`/instructor/exams/${examId}/${l.page}`} className="btn-soft px-3 py-1.5 text-xs">{l.label}</Link>
             ))}
-        </>>
+        </>
     );
 }
