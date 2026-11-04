@@ -13,6 +13,7 @@ import adminRoutes from './routes/admin';
 import similarityRoutes from './routes/similarity';
 import ltiRoutes from './routes/lti';
 import { initRealtime } from './realtime';
+import { pool } from './db';
 import helmet from 'helmet';
 import fs from 'fs';
 import rateLimit from 'express-rate-limit';
@@ -51,6 +52,18 @@ const PORT = process.env.PORT || 3000;
 const server = http.createServer(app);
 initRealtime(server);
 
-server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+async function applyMigrations() {
+    try {
+        const sql = fs.readFileSync(path.join(__dirname, '..', 'database', 'migrations.sql'), 'utf8');
+        await pool.query(sql);
+        console.log('Database migrations applied');
+    } catch (err) {
+        console.error('Database migrations failed (continuing):', err);
+    }
+}
+
+applyMigrations().finally(() => {
+    server.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+    });
 });
