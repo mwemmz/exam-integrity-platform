@@ -238,7 +238,16 @@ router.get('/exams/:examId/gradebook', authenticate, async (req: any, res: Respo
              WHERE a.exam_id = $1 ORDER BY u.name`,
             [req.params.examId]
         );
-        res.json(result.rows);
+        res.json(result.rows.map((r: any) => ({
+            attemptId: r.attempt_id,
+            studentName: r.student_name,
+            studentEmail: r.student_email,
+            status: r.status,
+            totalScore: r.total_score,
+            submittedAt: r.submitted_at,
+            flagged_for_review: r.flagged_for_review,
+            violations: Number(r.violations)
+        })));
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch gradebook' });
     }
