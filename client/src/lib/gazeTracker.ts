@@ -18,7 +18,7 @@ export async function createGazeTracker(): Promise<GazeTracker> {
     frame.src = `${BASE}host.html`;
     frame.setAttribute('aria-hidden', 'true');
     frame.tabIndex = -1;
-    frame.style.cssText = 'position:fixed;width:0;height:0;border:0;opacity:0;pointer-events:none';
+    frame.style.cssText = 'position:fixed;right:0;bottom:0;width:64px;height:64px;border:0;opacity:0.01;pointer-events:none';
     const waiters = new Map<number, (p: Pt[] | null) => void>();
     let nextId = 1;
     let closed = false;

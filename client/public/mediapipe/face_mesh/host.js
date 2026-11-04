@@ -1,4 +1,6 @@
 (function () {
+  window.addEventListener('error', function (e) { parent.postMessage({ type: 'gaze-error', message: String(e.message || e) }, location.origin); });
+  if (typeof FaceMesh === 'undefined') { parent.postMessage({ type: 'gaze-error', message: 'FaceMesh script missing' }, location.origin); return; }
   var fm = new FaceMesh({ locateFile: function (f) { return './' + f; } });
   fm.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
   var pending = null;

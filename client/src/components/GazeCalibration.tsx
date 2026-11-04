@@ -35,14 +35,22 @@ export default function GazeCalibration({ stream, onDone }: { stream: MediaStrea
         let tracker: Awaited<ReturnType<typeof createGazeTracker>> | null = null;
         const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
         (async () => {
+            let why = '';
             try {
+                // Some phone browsers will not play a video that is not in the page, so attach it (hidden).
+                video.style.cssText = 'position:fixed;width:1px;height:1px;opacity:0;pointer-events:none';
+                document.body.appendChild(video);
                 await video.play();
-                tracker = await createGazeTracker();
-            } catch {
-                if (!cancelled.current) { setPhase('failed'); setNote('Gaze calibration is not available on this device. Standard settings will be used.'); }
+            } catch (e) { why = `camera preview: ${e instanceof Error ? e.message : String(e)}`; }
+            if (!why) {
+                try { tracker = await createGazeTracker(); } catch (e) { why = `eye tracker: ${e instanceof Error ? e.message : String(e)}`; }
+            }
+            if (why) {
+                console.warn('gaze calibration unavailable:', why);
+                if (!cancelled.current) { setPhase('failed'); setNote(`Gaze calibration is not available on this device. Standard settings will be used. (${why.slice(0, 120)})`); }
                 return;
             }
-            if (cancelled.current) return;
+            if (cancelled.current || !tracker) return;
             // The first frame is slow while the model warms up; do it before the first dot so it does not eat the dot's time.
             await tracker.landmarks(video).catch(() => null);
             if (cancelled.current) return;
@@ -76,7 +84,7 @@ export default function GazeCalibration({ stream, onDone }: { stream: MediaStrea
             }
             onDone(true);
         })();
-        return () => { cancelled.current = true; try { tracker?.close(); } catch { /* ignore */ } video.srcObject = null; };
+        return () => { cancelled.current = true; try { tracker?.close(); } catch { /* ignore */ } video.srcObject = null; video.remove(); };
     }, [stream, onDone]);
 
     const dot = DOTS[idx];
