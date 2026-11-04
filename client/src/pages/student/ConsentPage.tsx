@@ -80,7 +80,7 @@ export default function ConsentPage() {
                         <label htmlFor="audio-consent" className="inline-flex items-start gap-2 cursor-pointer mt-1">
                             <input id="audio-consent" name="audioConsent" type="checkbox" checked={!!audioOk} onChange={e => setAudioOk(e.target.checked)} className="mt-0.5 accent-accent" />
                             <span>
-                                <strong className="text-ink">Voice/noise monitoring (optional):</strong> allow microphone access so background voices or loud noise are detected. Audio is analysed locally and never recorded.
+                                <strong className="text-ink">Voice/noise monitoring (optional):</strong> allow microphone access so people talking nearby are detected. Audio is analysed locally and never recorded.
                                 {audioOk === false && <span className="block text-xs text-warm-ink mt-0.5">Microphone was not granted — you can continue without voice detection.</span>}
                             </span>
                         </label>
