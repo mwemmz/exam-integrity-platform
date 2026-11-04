@@ -28,24 +28,27 @@ export interface ProctorOptions {
     objectIntervalMs?: number;
 }
 
-// The MediaPipe runtime and models are fetched in the browser. Each has a fallback so that a
-// blocked CDN on a campus network does not silently disable monitoring.
+// The MediaPipe runtime and the face model are served from this site first, so face monitoring works on a
+// campus network that blocks third-party hosts. The public CDNs stay as fallbacks only.
+const APP_ROOT = import.meta.env.BASE_URL || '/';
 const VISION_MODULES = [
+    `${APP_ROOT}mediapipe/vision_bundle.mjs`,
     'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/vision_bundle.mjs',
     'https://unpkg.com/@mediapipe/tasks-vision@0.10.3/vision_bundle.mjs'
 ];
 const WASM_BASES = [
+    `${APP_ROOT}mediapipe/wasm`,
     'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm',
     'https://unpkg.com/@mediapipe/tasks-vision@0.10.3/wasm'
 ];
-const LOCAL_MODELS = `${import.meta.env.BASE_URL || '/'}models/`;
+const LOCAL_MODELS = `${APP_ROOT}models/`;
 const FACE_MODELS = [
-    'https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite',
-    `${LOCAL_MODELS}blaze_face_short_range.tflite`
+    `${LOCAL_MODELS}blaze_face_short_range.tflite`,
+    'https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite'
 ];
 const OBJECT_MODELS = [
-    'https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/1/efficientdet_lite0.tflite',
-    `${LOCAL_MODELS}efficientdet_lite0.tflite`
+    `${LOCAL_MODELS}efficientdet_lite0.tflite`,
+    'https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/1/efficientdet_lite0.tflite'
 ];
 
 const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
