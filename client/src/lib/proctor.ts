@@ -1,3 +1,4 @@
+import { createSpeechDetector, type SpeechDetector } from './speechDetector';
 import { SightingWindow, collectSightings, decodeYolo, frameStats, gazeOffset, isBlocked, yoloInputSize, type DetectedBox } from './proctorLogic';
 
 export type ProctorFlagType = 'face_missing' | 'multi_face' | 'phone_detected' | 'voice_detected' | 'gaze_away' | 'camera_blocked';
@@ -198,6 +199,7 @@ export async function startProctoring(options: ProctorOptions): Promise<() => vo
     let faceDetector: any = null;
     let objectModel: ObjectDetectorLike | null = null;
     let audioCtx: AudioContext | null = null;
+    let speechDetector: SpeechDetector | null = null;
     let audioAnalyser: AnalyserNode | null = null;
     let audioBaseline = 0;
     let audioVoicedStreak = 0;
@@ -374,6 +376,21 @@ export async function startProctoring(options: ProctorOptions): Promise<() => vo
     // ---- Audio
     const startAudio = async () => {
         if (!options.audioStream) return;
+        // Preferred: a speech model, so only talking counts. If it cannot load, fall back to the older
+        // loudness check below rather than lose audio monitoring altogether.
+        try {
+            const det = await createSpeechDetector(options.audioStream, e => emitSimple('voice_detected', {
+                seconds: e.seconds,
+                confidence: e.confidence,
+                model: 'silero-vad-v5',
+                detail: `speech detected (${Math.round(e.confidence * 100)}% confidence)`
+            }));
+            if (disposed.value) { det.close(); return; }
+            speechDetector = det;
+            return;
+        } catch (err) {
+            console.warn('[proctor] speech model unavailable, using a loudness check instead', err);
+        }
         try {
             audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
             const source = audioCtx.createMediaStreamSource(options.audioStream);
@@ -398,7 +415,7 @@ export async function startProctoring(options: ProctorOptions): Promise<() => vo
             if (rms > threshold && rms > 0.045) {
                 audioVoicedStreak++;
                 if (audioVoicedStreak >= 4) {
-                    emitSimple('voice_detected', { level: Number(rms.toFixed(3)) });
+                    emitSimple('voice_detected', { level: Number(rms.toFixed(3)), model: 'loudness', detail: 'loud noise (speech model unavailable)' });
                     audioVoicedStreak = 0;
                 }
             } else {
@@ -438,6 +455,7 @@ export async function startProctoring(options: ProctorOptions): Promise<() => vo
         monitorVideo.srcObject = null;
         try { faceDetector?.close?.(); } catch { /* ignore */ }
         try { objectModel?.close(); } catch { /* ignore */ }
+        try { speechDetector?.close(); } catch { /* ignore */ }
         audioCtx?.close().catch(() => {});
     };
 }
