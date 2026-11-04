@@ -1,3 +1,5 @@
+import { createGazeTracker, loadCalibration, type GazeTracker } from './gazeTracker';
+import { AwayTimer, DEFAULT_CALIBRATION, classifyGaze, extractFeatures } from './gazeMath';
 import { createSpeechDetector, type SpeechDetector } from './speechDetector';
 import { SightingWindow, collectSightings, decodeYolo, frameStats, gazeOffset, isBlocked, yoloInputSize, type DetectedBox } from './proctorLogic';
 
@@ -204,6 +206,9 @@ export async function startProctoring(options: ProctorOptions): Promise<() => vo
     let audioBaseline = 0;
     let audioVoicedStreak = 0;
     let gazeStreak = 0;
+    let gazeTracker: GazeTracker | null = null;
+    const gazeCal = loadCalibration() || DEFAULT_CALIBRATION;
+    const awayTimer = new AwayTimer(3000, 20000);
     const sightings = new SightingWindow();
 
     const status: ProctorStatus = { face: 'loading', object: 'loading' };
@@ -325,7 +330,18 @@ export async function startProctoring(options: ProctorOptions): Promise<() => vo
             emitDuration('multi_face', detections.length >= 2, 4000, { faces: detections.length });
             emitDuration('face_missing', detections.length === 0, 5000, { detail: 'no face in view' });
 
-            if (detections.length === 1) {
+            if (detections.length === 1 && gazeTracker) {
+                // Iris + head pose: flags only when the student has looked clearly away for 3 seconds in a row.
+                const lm = await gazeTracker.landmarks(monitorVideo);
+                const f = extractFeatures(lm);
+                const v = f ? classifyGaze(f, gazeCal) : null;
+                if (awayTimer.update(v ? v.away : null, performance.now()) && v) {
+                    emitSimple('gaze_away', {
+                        source: 'iris', reason: v.reason, calibrated: gazeCal.calibrated, seconds: 3,
+                        yaw: Number(v.dev.yaw.toFixed(3)), irisH: Number(v.dev.irisH.toFixed(3)), pitch: Number(v.dev.pitch.toFixed(3))
+                    });
+                }
+            } else if (detections.length === 1) {
                 const byName: Record<string, any> = {};
                 for (const p of detections[0].keypoints || []) byName[p.name] = p;
                 if (byName.rightEye && byName.leftEye && byName.noseTip) {
@@ -333,7 +349,7 @@ export async function startProctoring(options: ProctorOptions): Promise<() => vo
                     gazeStreak = g.away ? gazeStreak + 1 : 0;
                     // Two consecutive frames: ignores a single blink or jitter.
                     if (gazeStreak >= 2) {
-                        emitSimple('gaze_away', { dx: Number(g.dx.toFixed(3)), dz: Number(g.dz.toFixed(3)) });
+                        emitSimple('gaze_away', { source: 'head-turn', dx: Number(g.dx.toFixed(3)), dz: Number(g.dz.toFixed(3)) });
                     }
                 }
             } else {
@@ -444,6 +460,10 @@ export async function startProctoring(options: ProctorOptions): Promise<() => vo
         createWithRetry('face', () => disposed.value)
             .then(d => { faceDetector = d; pushStatus({ face: 'ready' }); })
             .catch(e => { if (!disposed.value) { pushStatus({ face: 'failed' }); note('face detection', e); } });
+        // Iris tracking is an upgrade: if it cannot load, the older head-turn check keeps running.
+        createGazeTracker()
+            .then(g => { if (disposed.value) g.close(); else gazeTracker = g; })
+            .catch(() => { /* fall back to head-turn check */ });
         createWithRetry('object', () => disposed.value)
             .then(d => { objectModel = d; pushStatus({ object: 'ready' }); })
             .catch(e => { if (!disposed.value) { pushStatus({ object: 'failed' }); note('phone detection', e); } });
@@ -454,6 +474,7 @@ export async function startProctoring(options: ProctorOptions): Promise<() => vo
         timers.forEach(t => clearInterval(t));
         monitorVideo.srcObject = null;
         try { faceDetector?.close?.(); } catch { /* ignore */ }
+        try { gazeTracker?.close(); } catch { /* ignore */ }
         try { objectModel?.close(); } catch { /* ignore */ }
         try { speechDetector?.close(); } catch { /* ignore */ }
         audioCtx?.close().catch(() => {});
