@@ -1,3 +1,5 @@
 MediaPipe Tasks Vision 0.10.3 runtime (vision_bundle.mjs and wasm/*), Copyright Google LLC, Apache License 2.0.
 Served from this site so face monitoring works on networks that block third-party hosts.
 Source: npm package @mediapipe/tasks-vision@0.10.3.
+
+face_mesh/ : @mediapipe/face_mesh 0.4.1633559619 (Apache-2.0), served locally for iris/gaze tracking.
