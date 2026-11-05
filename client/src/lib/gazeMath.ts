@@ -68,7 +68,7 @@ function meanFeatures(fs: GazeFeatures[]): GazeFeatures {
  * Build a personal calibration from the frames collected while the student looked at the centre and at
  * each screen edge. Returns null when there is too little data (caller falls back to the defaults).
  */
-export function buildCalibration(centre: GazeFeatures[], edges: GazeFeatures[][], minFrames = 3): GazeCalibration | null {
+export function buildCalibration(centre: GazeFeatures[], edges: GazeFeatures[][], minFrames = 2): GazeCalibration | null {
     if (centre.length < minFrames) return null;
     const usable = edges.filter(e => e.length >= minFrames).map(meanFeatures);
     if (usable.length < 2) return null;

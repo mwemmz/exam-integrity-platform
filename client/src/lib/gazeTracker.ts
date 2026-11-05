@@ -50,7 +50,7 @@ export async function createGazeTracker(): Promise<GazeTracker> {
         frame.remove();
     };
     try {
-        await Promise.race([ready, new Promise<never>((_, rej) => setTimeout(() => rej(new Error('eye tracker load timed out')), 45000))]);
+        await Promise.race([ready, new Promise<never>((_, rej) => setTimeout(() => rej(new Error('eye tracker load timed out')), 120000))]);
     } catch (e) { close(); throw e; }
     return {
         async landmarks(video) {
@@ -58,13 +58,28 @@ export async function createGazeTracker(): Promise<GazeTracker> {
             const bitmap = await createImageBitmap(video);
             return new Promise<Pt[] | null>(resolve => {
                 const id = nextId++;
-                const timer = setTimeout(() => { waiters.delete(id); resolve(null); }, 5000);
+                const timer = setTimeout(() => { waiters.delete(id); resolve(null); }, 10000);
                 waiters.set(id, p => { clearTimeout(timer); resolve(p); });
                 frame.contentWindow!.postMessage({ type: 'gaze-frame', id, bitmap }, window.location.origin, [bitmap]);
             });
         },
         close
     };
+}
+
+/** Warm the browser cache with the eye-tracker files (about 10 MB) while the student reads the consent page,
+ *  so calibration does not wait on a slow phone connection. Safe to call more than once; failures are ignored. */
+let prefetched = false;
+export function prefetchGazeAssets(): void {
+    if (prefetched) return;
+    prefetched = true;
+    // WebAssembly SIMD probe: the model loads the SIMD build when the browser supports it.
+    let simd = false;
+    try { simd = WebAssembly.validate(new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0, 1, 5, 1, 96, 0, 1, 123, 3, 2, 1, 0, 10, 10, 1, 8, 0, 65, 0, 253, 15, 253, 98, 11])); } catch { /* no wasm */ }
+    const files = ['face_mesh.js', 'face_mesh.binarypb', 'face_mesh_solution_packed_assets_loader.js', 'face_mesh_solution_packed_assets.data',
+        simd ? 'face_mesh_solution_simd_wasm_bin.js' : 'face_mesh_solution_wasm_bin.js',
+        simd ? 'face_mesh_solution_simd_wasm_bin.wasm' : 'face_mesh_solution_wasm_bin.wasm'];
+    (async () => { for (const f of files) { try { await fetch(`${BASE}${f}`); } catch { /* ignore */ } } })();
 }
 
 const KEY = 'examtech.gazeCalibration';
