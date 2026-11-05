@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import GazeCalibration from '../../components/GazeCalibration';
-import { prefetchGazeAssets } from '../../lib/gazeTracker';
+import { preloadGazeTracker, dropPreloadedGazeTracker } from '../../lib/gazeTracker';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../../lib/api';
 
@@ -20,7 +20,7 @@ export default function ConsentPage() {
         }).catch(() => resolve());
     });
 
-    useEffect(() => { prefetchGazeAssets(); }, []);
+    useEffect(() => { preloadGazeTracker(); return () => dropPreloadedGazeTracker(); }, []);
 
     useEffect(() => {
         api(`/api/exams/${examId}`).then(setExam).catch(err => setError(err.message));

@@ -67,6 +67,26 @@ export async function createGazeTracker(): Promise<GazeTracker> {
     };
 }
 
+/** Start loading the eye tracker as soon as the consent page opens, so the download and warm-up happen while the
+ *  student reads the page instead of during calibration. takeGazeTracker() hands the loaded tracker over. */
+let preloaded: Promise<GazeTracker> | null = null;
+export function preloadGazeTracker(): void {
+    if (preloaded) return;
+    preloaded = createGazeTracker();
+    preloaded.catch(() => { /* reported when taken */ });
+}
+/** Close a preloaded tracker nobody used (e.g. the student left or declined the camera). */
+export function dropPreloadedGazeTracker(): void {
+    const p = preloaded;
+    preloaded = null;
+    p?.then(t => t.close()).catch(() => { /* never loaded */ });
+}
+export function takeGazeTracker(): Promise<GazeTracker> {
+    const p = preloaded;
+    preloaded = null;
+    return p ?? createGazeTracker();
+}
+
 /** Warm the browser cache with the eye-tracker files (about 10 MB) while the student reads the consent page,
  *  so calibration does not wait on a slow phone connection. Safe to call more than once; failures are ignored. */
 let prefetched = false;
