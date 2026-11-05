@@ -7,7 +7,7 @@ const BASE = `${APP_ROOT}mediapipe/face_mesh/`;
 
 export interface GazeTracker {
     /** Landmarks (478, normalised) for the first face in the frame, or null when no face is found. */
-    landmarks(video: HTMLVideoElement): Promise<Pt[] | null>;
+    landmarks(video: HTMLVideoElement, timeoutMs?: number): Promise<Pt[] | null>;
     close(): void;
 }
 
@@ -53,12 +53,12 @@ export async function createGazeTracker(): Promise<GazeTracker> {
         await Promise.race([ready, new Promise<never>((_, rej) => setTimeout(() => rej(new Error('eye tracker load timed out')), 120000))]);
     } catch (e) { close(); throw e; }
     return {
-        async landmarks(video) {
+        async landmarks(video, timeoutMs = 4000) {
             if (closed || !frame.contentWindow || video.videoWidth === 0) return null;
             const bitmap = await createImageBitmap(video);
             return new Promise<Pt[] | null>(resolve => {
                 const id = nextId++;
-                const timer = setTimeout(() => { waiters.delete(id); resolve(null); }, 10000);
+                const timer = setTimeout(() => { waiters.delete(id); resolve(null); }, timeoutMs);
                 waiters.set(id, p => { clearTimeout(timer); resolve(p); });
                 frame.contentWindow!.postMessage({ type: 'gaze-frame', id, bitmap }, window.location.origin, [bitmap]);
             });
