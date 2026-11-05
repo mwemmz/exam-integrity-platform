@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { createGazeTracker, saveCalibration } from '../lib/gazeTracker';
+import { takeGazeTracker, saveCalibration } from '../lib/gazeTracker';
 import { buildCalibration, extractFeatures, type GazeFeatures } from '../lib/gazeMath';
 
 // Centre first (the baseline), then the four screen edges (how far this student moves when reading the whole screen).
@@ -24,8 +24,15 @@ export default function GazeCalibration({ stream, onDone }: { stream: MediaStrea
     const [phase, setPhase] = useState<Phase>('loading');
     const [idx, setIdx] = useState(0);
     const [note, setNote] = useState('');
+    const [waited, setWaited] = useState(0);
     const cancelled = useRef(false);
     const skip = useRef(false);
+
+    useEffect(() => {
+        if (phase !== 'loading') return;
+        const iv = setInterval(() => setWaited(w => w + 1), 1000);
+        return () => clearInterval(iv);
+    }, [phase]);
 
     useEffect(() => {
         cancelled.current = false;
@@ -33,7 +40,7 @@ export default function GazeCalibration({ stream, onDone }: { stream: MediaStrea
         video.muted = true;
         video.playsInline = true;
         video.srcObject = stream;
-        let tracker: Awaited<ReturnType<typeof createGazeTracker>> | null = null;
+        let tracker: Awaited<ReturnType<typeof takeGazeTracker>> | null = null;
         const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
         (async () => {
             let why = '';
@@ -44,14 +51,14 @@ export default function GazeCalibration({ stream, onDone }: { stream: MediaStrea
                 await video.play();
             } catch (e) { why = `camera preview: ${e instanceof Error ? e.message : String(e)}`; }
             if (!why) {
-                try { tracker = await createGazeTracker(); } catch (e) { why = `eye tracker: ${e instanceof Error ? e.message : String(e)}`; }
+                try { tracker = await takeGazeTracker(); } catch (e) { why = `eye tracker: ${e instanceof Error ? e.message : String(e)}`; }
             }
             if (why) {
                 console.warn('gaze calibration unavailable:', why);
                 if (!cancelled.current) { setPhase('failed'); setNote(`Gaze calibration is not available on this device. Standard settings will be used. (${why.slice(0, 120)})`); }
                 return;
             }
-            if (cancelled.current || !tracker) return;
+            if (cancelled.current || !tracker) { try { tracker?.close(); } catch { /* ignore */ } return; }
             // The first frame is slow while the model warms up; do it before the first dot so it does not eat the dot's time.
             await tracker.landmarks(video, 25000).catch(() => null);
             if (cancelled.current) return;
@@ -102,7 +109,7 @@ export default function GazeCalibration({ stream, onDone }: { stream: MediaStrea
                 <p className="text-sm text-muted mt-1 max-w-md mx-auto">
                     {phase === 'running'
                         ? 'Keep your head still and follow the dot with your eyes only. This takes about 15 seconds and nothing is recorded.'
-                        : phase === 'loading' ? 'Loading the eye tracker on this device.' : note}
+                        : phase === 'loading' ? `Loading the eye tracker on this device (${waited} s). The first time can take up to a minute on a slow connection. You can skip this step.` : note}
                 </p>
             </div>
             {phase === 'running' && (
