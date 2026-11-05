@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import GazeCalibration from '../../components/GazeCalibration';
+import { prefetchGazeAssets } from '../../lib/gazeTracker';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../../lib/api';
 
@@ -18,6 +19,8 @@ export default function ConsentPage() {
             setCalib({ stream, done: () => { stream.getTracks().forEach(t => t.stop()); setCalib(null); resolve(); } });
         }).catch(() => resolve());
     });
+
+    useEffect(() => { prefetchGazeAssets(); }, []);
 
     useEffect(() => {
         api(`/api/exams/${examId}`).then(setExam).catch(err => setError(err.message));

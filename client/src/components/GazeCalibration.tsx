@@ -12,8 +12,8 @@ const DOTS = [
 ];
 const SETTLE_MS = 900;
 const HOLD_MS = 2200;
-const WANT_FRAMES = 6;
-const MAX_HOLD_MS = 6000; // keep waiting past HOLD_MS (slow PCs) until enough frames are in, but not forever
+const WANT_FRAMES = 4;
+const MAX_HOLD_MS = 8000; // keep waiting past HOLD_MS (slow PCs) until enough frames are in, but not forever
 const SAMPLE_MS = 200;
 
 type Phase = 'loading' | 'running' | 'failed';
