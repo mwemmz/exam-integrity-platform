@@ -1,6 +1,4 @@
 import { useEffect, useState } from 'react';
-import GazeCalibration from '../../components/GazeCalibration';
-import { preloadGazeTracker, dropPreloadedGazeTracker } from '../../lib/gazeTracker';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../../lib/api';
 
@@ -12,15 +10,6 @@ export default function ConsentPage() {
     const [audioOk, setAudioOk] = useState<boolean | null>(null);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
-    const [calib, setCalib] = useState<{ stream: MediaStream; done: (ok: boolean) => void } | null>(null);
-
-    const calibrate = (): Promise<void> => new Promise(resolve => {
-        navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
-            setCalib({ stream, done: () => { stream.getTracks().forEach(t => t.stop()); setCalib(null); resolve(); } });
-        }).catch(() => resolve());
-    });
-
-    useEffect(() => { preloadGazeTracker(); return () => dropPreloadedGazeTracker(); }, []);
 
     useEffect(() => {
         api(`/api/exams/${examId}`).then(setExam).catch(err => setError(err.message));
@@ -43,7 +32,6 @@ export default function ConsentPage() {
                     setWebcamOk(false); // denied: continue without snapshots
                 }
             }
-            if (webcamOk) await calibrate();
             if (audioOk) {
                 try {
                     (await navigator.mediaDevices.getUserMedia({ audio: true })).getTracks().forEach(t => t.stop());
@@ -70,7 +58,6 @@ export default function ConsentPage() {
 
     return (
         <div className="max-w-2xl mx-auto p-4 sm:p-6">
-            {calib && <GazeCalibration stream={calib.stream} onDone={calib.done} />}
             <div className="glass-strong p-5 sm:p-8">
                 <h1 className="text-[2rem] font-extrabold tracking-tight text-ink">Before you begin</h1>
                 <p className="text-muted text-sm mb-6">{exam ? exam.title : ''}</p>
