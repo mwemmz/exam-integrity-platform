@@ -13,6 +13,7 @@ const DOTS = [
 const SETTLE_MS = 900;
 const HOLD_MS = 2200;
 const WANT_FRAMES = 4;
+const NO_FACE_MS = 3500; // give up on a dot after this long without a single usable frame
 const MAX_HOLD_MS = 8000; // keep waiting past HOLD_MS (slow PCs) until enough frames are in, but not forever
 const SAMPLE_MS = 200;
 
@@ -52,11 +53,12 @@ export default function GazeCalibration({ stream, onDone }: { stream: MediaStrea
             }
             if (cancelled.current || !tracker) return;
             // The first frame is slow while the model warms up; do it before the first dot so it does not eat the dot's time.
-            await tracker.landmarks(video).catch(() => null);
+            await tracker.landmarks(video, 25000).catch(() => null);
             if (cancelled.current) return;
             setPhase('running');
             const centre: GazeFeatures[] = [];
             const edges: GazeFeatures[][] = [];
+            let emptyDots = 0;
             for (let i = 0; i < DOTS.length; i++) {
                 if (cancelled.current || skip.current) break;
                 setIdx(i);
@@ -66,11 +68,14 @@ export default function GazeCalibration({ stream, onDone }: { stream: MediaStrea
                 while (!cancelled.current && !skip.current) {
                     const t = performance.now() - start;
                     if (t >= MAX_HOLD_MS || (t >= HOLD_MS && got.length >= WANT_FRAMES)) break;
+                    if (got.length === 0 && t >= NO_FACE_MS) break; // nothing seen on this dot: do not sit here until MAX_HOLD
                     const f = extractFeatures(await tracker.landmarks(video));
                     if (f) got.push(f);
                     await sleep(SAMPLE_MS);
                 }
                 if (i === 0) centre.push(...got); else edges.push(got);
+                emptyDots = got.length === 0 ? emptyDots + 1 : 0;
+                if (emptyDots >= 2) break; // two dots in a row with no face: fail fast instead of stalling
             }
             tracker.close();
             if (cancelled.current) return;
@@ -79,7 +84,7 @@ export default function GazeCalibration({ stream, onDone }: { stream: MediaStrea
             saveCalibration(cal);
             if (!cal) {
                 setPhase('failed');
-                setNote('We could not see your eyes clearly enough, so standard settings will be used. Make sure your face is lit and facing the screen.');
+                setNote('We could not see your face clearly enough, so standard settings will be used. Make sure your face is lit and facing the screen, then try again later if you like.');
                 return;
             }
             onDone(true);
