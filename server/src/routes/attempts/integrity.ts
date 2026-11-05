@@ -60,9 +60,13 @@ async function evaluateRules(attemptId: string | number): Promise<{ triggered: b
 
 const EVIDENCE_DATA_URL = /^data:image\/jpeg;base64,([A-Za-z0-9+/=]+)$/;
 const MAX_EVIDENCE_BYTES = 1_500_000;
+// Short audio clip saved with a voice flag (about 6 s of low-bitrate audio, so a few tens of KB).
+const AUDIO_DATA_URL = /^data:audio\/(webm|mp4|ogg|mpeg|wav)(?:;codecs=[A-Za-z0-9.,=-]+)?;base64,([A-Za-z0-9+/=]+)$/;
+const MAX_AUDIO_BYTES = 600_000;
+const AUDIO_EXT: Record<string, string> = { webm: 'webm', mp4: 'm4a', ogg: 'ogg', mpeg: 'mp3', wav: 'wav' };
 
 router.post('/:attemptId/event', authenticate, async (req: any, res: Response) => {
-    const { eventType, metadata, evidenceBase64 } = req.body;
+    const { eventType, metadata, evidenceBase64, audioBase64 } = req.body;
     const validEvents = ['tab_switch', 'fullscreen_exit', 'paste_blocked', 'face_missing', 'multi_face', 'phone_detected', 'voice_detected', 'gaze_away', 'camera_blocked', 'proctor_unavailable'];
     if (!validEvents.includes(eventType)) {
         return res.status(400).json({ error: 'Invalid event type' });
@@ -87,6 +91,22 @@ router.post('/:attemptId/event', authenticate, async (req: any, res: Response) =
                     await pool.query('INSERT INTO webcam_snapshots (attempt_id, image_url) VALUES ($1, $2)', [req.params.attemptId, meta.evidenceUrl]);
                 } catch (e) {
                     console.warn('[integrity] could not store evidence frame', e);
+                }
+            }
+        }
+
+        // Optional short audio clip, only accepted with a voice flag. Stored beside the evidence frame.
+        const audio = eventType === 'voice_detected' && typeof audioBase64 === 'string' ? AUDIO_DATA_URL.exec(audioBase64) : null;
+        if (audio) {
+            const buffer = Buffer.from(audio[2], 'base64');
+            if (buffer.length > 0 && buffer.length <= MAX_AUDIO_BYTES) {
+                try {
+                    await fs.promises.mkdir(UPLOADS_DIR, { recursive: true });
+                    const filename = `voiceclip_${Number(req.params.attemptId)}_${Date.now()}.${AUDIO_EXT[audio[1]]}`;
+                    await fs.promises.writeFile(path.join(UPLOADS_DIR, filename), buffer);
+                    meta.audioUrl = `/uploads/${filename}`;
+                } catch (e) {
+                    console.warn('[integrity] could not store voice clip', e);
                 }
             }
         }

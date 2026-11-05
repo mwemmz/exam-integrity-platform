@@ -281,7 +281,7 @@ export default function AttemptDetailPage() {
                         <div className="space-y-1">
                             {data.events.map(ev => {
                                 const meta = (ev.metadata || {}) as Record<string, unknown>;
-                                const { evidenceUrl, ...rest } = meta as { evidenceUrl?: string } & Record<string, unknown>;
+                                const { evidenceUrl, audioUrl, clipSeconds: _clip, ...rest } = meta as { evidenceUrl?: string; audioUrl?: string; clipSeconds?: number } & Record<string, unknown>;
                                 const text = typeof rest.detail === 'string'
                                     ? rest.detail + (rest.seconds ? ` · ${String(rest.seconds)}s` : '')
                                     : Object.keys(rest).length > 0 ? JSON.stringify(rest) : '';
@@ -290,6 +290,9 @@ export default function AttemptDetailPage() {
                                         <span className="min-w-0 font-semibold">{eventLabels[ev.event_type] || ev.event_type.replace(/_/g, ' ')}</span>
                                         <span className="text-xs opacity-80 text-right ml-auto flex items-center gap-2">
                                             <span>{text}{'  '}{new Date(ev.timestamp).toLocaleTimeString()}</span>
+                                            {audioUrl && (
+                                                <audio controls preload="none" src={fileUrl(audioUrl)} className="h-8 max-w-[220px]" title="Audio clip recorded when this was flagged" />
+                                            )}
                                             {evidenceUrl && (
                                                 <a href={fileUrl(evidenceUrl)} target="_blank" rel="noreferrer" title="Frame captured when this was flagged">
                                                     <img src={fileUrl(evidenceUrl)} alt="Evidence frame" className="h-14 w-auto rounded border border-line" loading="lazy" />

@@ -71,12 +71,12 @@ export default function ExamPage() {
         document.exitFullscreen().catch(() => {});
     }, []);
 
-    const logEvent = useCallback(async (eventType: string, metadata?: Record<string, unknown>, evidenceBase64?: string) => {
+    const logEvent = useCallback(async (eventType: string, metadata?: Record<string, unknown>, evidenceBase64?: string, audioBase64?: string) => {
         if (phaseRef.current !== 'active') return;
         const post = (type: string, meta?: Record<string, unknown>) =>
             api<{ autoSubmitted: boolean; rule?: string }>(
                 `/api/integrity/${attemptId}/event`,
-                { method: 'POST', body: { eventType: type, metadata: meta, evidenceBase64 } }
+                { method: 'POST', body: { eventType: type, metadata: meta, evidenceBase64, audioBase64 } }
             );
 
         // Retry transient failures (server waking up, network blip) so a flag is not silently lost.
@@ -347,7 +347,7 @@ export default function ExamPage() {
                 stopProctor = await startProctoring({
                     videoStream: s,
                     audioStream: audioEnabled ? s : undefined,
-                    onFlag: flag => { announceFlag(flag.type); void logEvent(flag.type, flag.metadata, flag.evidence); },
+                    onFlag: flag => { announceFlag(flag.type); void logEvent(flag.type, flag.metadata, flag.evidence, flag.audio); },
                     onError: () => { /* keep monitoring degradable; status is reported via onStatus */ },
                     onStatus: (st: ProctorStatus) => {
                         if (cancelled) return;
