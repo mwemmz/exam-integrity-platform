@@ -10,6 +10,39 @@ export interface ProctorFlag {
     metadata: Record<string, unknown>;
     /** JPEG data URL of the camera frame at the moment of the flag (video-based flags only). */
     evidence?: string;
+    /** Short audio clip (data URL) recorded right after a voice flag, so the instructor can listen. */
+    audio?: string;
+}
+
+/** Length of the clip saved with a voice flag. Kept short: it is evidence for a reviewer, not a recording of the exam. */
+const VOICE_CLIP_MS = 6000;
+
+/** Record a short audio-only clip from the stream; resolves undefined if recording is unsupported or fails. */
+function recordClip(stream: MediaStream, ms: number): Promise<string | undefined> {
+    return new Promise(resolve => {
+        try {
+            if (typeof MediaRecorder === 'undefined' || stream.getAudioTracks().length === 0) return resolve(undefined);
+            const mimeType = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus']
+                .find(t => MediaRecorder.isTypeSupported(t));
+            const audioOnly = new MediaStream(stream.getAudioTracks());
+            const rec = new MediaRecorder(audioOnly, { ...(mimeType ? { mimeType } : {}), audioBitsPerSecond: 24000 });
+            const chunks: Blob[] = [];
+            rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+            rec.onerror = () => resolve(undefined);
+            rec.onstop = () => {
+                if (!chunks.length) return resolve(undefined);
+                const blob = new Blob(chunks, { type: rec.mimeType || mimeType || 'audio/webm' });
+                const fr = new FileReader();
+                fr.onload = () => resolve(typeof fr.result === 'string' ? fr.result : undefined);
+                fr.onerror = () => resolve(undefined);
+                fr.readAsDataURL(blob);
+            };
+            rec.start();
+            setTimeout(() => { try { if (rec.state !== 'inactive') rec.stop(); } catch { resolve(undefined); } }, ms);
+        } catch {
+            resolve(undefined);
+        }
+    });
 }
 
 export type ModelState = 'loading' | 'ready' | 'failed';
@@ -260,7 +293,16 @@ export async function startProctoring(options: ProctorOptions): Promise<() => vo
         // even though the trigger was audio, the frame at that moment (a second person in view,
         // the student not facing the screen) is still useful context for the reviewer.
         // captureEvidence() already degrades to undefined on an audio-only exam with no camera.
-        options.onFlag({ type, metadata, evidence: captureEvidence(box) });
+        const evidence = captureEvidence(box);
+        if (type === 'voice_detected' && options.audioStream) {
+            // Save the next few seconds of audio with the flag so the reviewer can listen. The flag is sent once the
+            // clip is ready; if recording is not supported it is sent straight away without audio.
+            void recordClip(options.audioStream, VOICE_CLIP_MS).then(audio => {
+                if (!disposed.value) options.onFlag({ type, metadata: { ...metadata, clipSeconds: audio ? VOICE_CLIP_MS / 1000 : undefined }, evidence, audio });
+            });
+            return;
+        }
+        options.onFlag({ type, metadata, evidence });
     };
 
     /** Called every tick while a condition holds; emits once it has lasted `afterMs`, then every 15 s. */

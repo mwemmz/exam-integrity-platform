@@ -285,6 +285,7 @@ export default function ViolationsPage() {
                                         <tbody>
                                             {g.rows.map(r => {
                                                 const evidence = (r.metadata as any)?.evidenceUrl as string | undefined;
+                                                const audio = (r.metadata as any)?.audioUrl as string | undefined;
                                                 return (
                                                     <tr key={r.event_id} className={r.status === 'auto_submitted' || r.flagged_for_review ? 'bg-danger/5' : ''}>
                                                         <td className="td">
@@ -303,7 +304,8 @@ export default function ViolationsPage() {
                                                                 <a href={fileUrl(evidence)} target="_blank" rel="noreferrer">
                                                                     <img src={fileUrl(evidence)} alt="Evidence frame" className="h-12 w-16 object-cover rounded border border-line" loading="lazy" />
                                                                 </a>
-                                                            ) : <span className="text-xs text-muted">—</span>}
+                                                            ) : !audio && <span className="text-xs text-muted">—</span>}
+                                                            {audio && <audio controls preload="none" src={fileUrl(audio)} className="h-8 w-44 mt-1 block" title="Audio clip recorded when this was flagged" />}
                                                         </td>
                                                         <td className="td font-medium text-ink">{r.exam_title}</td>
                                                         <td className="td text-xs text-muted">{new Date(r.timestamp).toLocaleString()}</td>
