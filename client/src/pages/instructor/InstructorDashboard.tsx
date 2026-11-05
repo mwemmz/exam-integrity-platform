@@ -67,6 +67,8 @@ export default function InstructorDashboard() {
     const [questions, setQuestions] = useState<DraftQ[]>([]);
     const [selectedGroupIds, setSelectedGroupIds] = useState<number[]>([]);
     const [saving, setSaving] = useState(false);
+    const [editingId, setEditingId] = useState<number | null>(null);
+    const [questionsLocked, setQuestionsLocked] = useState(false);
 
     // question bank
     const [bankOpen, setBankOpen] = useState(false);
@@ -162,6 +164,38 @@ export default function InstructorDashboard() {
         setQuestions(qs => [...qs, q]);
     };
 
+    const startEdit = async (e: Exam) => {
+        setError('');
+        try {
+            const [qs, gids] = await Promise.all([
+                api<Array<{ type: DraftQ['type']; prompt: string; points: number; options: string[] | null; correct_answer: number[] | null }>>(`/api/exams/${e.id}/questions`),
+                api<number[]>(`/api/exams/${e.id}/assignments`)
+            ]);
+            setEditingId(e.id);
+            setTitle(e.title);
+            setDescription(e.description || '');
+            setTimeLimit(String(e.time_limit_minutes || 60));
+            setSelectedGroupIds(gids);
+            setQuestions(qs.map(q => ({
+                type: q.type, prompt: q.prompt, points: q.points,
+                optionsText: Array.isArray(q.options) ? q.options.join(', ') : '',
+                correct: Array.isArray(q.correct_answer) ? q.correct_answer : []
+            })));
+            // Questions are locked once a student has started; the server enforces this too.
+            const gb = await api<unknown[]>(`/api/instructor/exams/${e.id}/gradebook`).catch(() => []);
+            setQuestionsLocked(Array.isArray(gb) && gb.length > 0);
+            setShowForm(true);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to load exam for editing');
+        }
+    };
+
+    const cancelForm = () => {
+        setShowForm(false); setEditingId(null); setQuestionsLocked(false);
+        setTitle(''); setDescription(''); setTimeLimit('60'); setQuestions([]); setSelectedGroupIds([]);
+    };
+
     const createExam = async () => {
         if (!title.trim() || questions.length === 0) {
             setError('A title and at least one question are required.');
@@ -177,8 +211,8 @@ export default function InstructorDashboard() {
         setSaving(true);
         setError('');
         try {
-            await api('/api/exams', {
-                method: 'POST',
+            await api(editingId ? `/api/exams/${editingId}` : '/api/exams', {
+                method: editingId ? 'PUT' : 'POST',
                 body: {
                     title,
                     description,
@@ -186,7 +220,7 @@ export default function InstructorDashboard() {
                     randomizeOrder: false,
                     proctoringPolicy: policy,
                     groupIds: selectedGroupIds,
-                    questions: questions.map(q => ({
+                    questions: questionsLocked ? undefined : questions.map(q => ({
                         type: q.type,
                         prompt: q.prompt,
                         points: q.points,
@@ -197,10 +231,10 @@ export default function InstructorDashboard() {
                     }))
                 }
             });
-            setTitle(''); setDescription(''); setTimeLimit('60'); setQuestions([]); setSelectedGroupIds([]); setShowForm(false);
+            setTitle(''); setDescription(''); setTimeLimit('60'); setQuestions([]); setSelectedGroupIds([]); setShowForm(false); setEditingId(null); setQuestionsLocked(false);
             loadExams();
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to create exam');
+            setError(err instanceof Error ? err.message : (editingId ? 'Failed to save exam' : 'Failed to create exam'));
         } finally {
             setSaving(false);
         }
@@ -305,7 +339,7 @@ export default function InstructorDashboard() {
                     <Link to="/instructor/violations" className="btn-soft px-4 py-2 text-sm">Violation Tracker</Link>
                     <button onClick={() => setShowGroups(v => !v)} className="btn-soft px-4 py-2 text-sm">{showGroups ? 'Done' : 'Manage groups'}</button>
                     <button
-                        onClick={() => setShowForm(v => !v)}
+                        onClick={() => (showForm ? cancelForm() : setShowForm(true))}
                         className={showForm ? 'btn-soft px-4 py-2 text-sm' : 'btn-primary px-4 py-2 text-sm'}
                     >
                         {showForm ? 'Cancel' : '+ New Exam'}
@@ -352,7 +386,7 @@ export default function InstructorDashboard() {
             {showForm && (
                 <div className="glass-strong p-5 space-y-4">
                     <div className="flex items-center justify-between flex-wrap gap-2">
-                        <h2 className="font-extrabold text-ink">Create Exam</h2>
+                        <h2 className="font-extrabold text-ink">{editingId ? `Edit Exam #${editingId}` : 'Create Exam'}</h2>
                         <button onClick={() => setBankOpen(v => !v)} className="btn-light px-3 py-1.5 text-xs border-ink-2/25">
                             {bankOpen ? 'Close question bank' : 'Import from question bank'}
                         </button>
@@ -409,7 +443,13 @@ export default function InstructorDashboard() {
                         </div>
                     </div>
 
-                    <div className="space-y-3">
+                    {questionsLocked && (
+                        <div className="text-xs text-warm-ink bg-warm/12 border border-warm/40 rounded-lg px-3 py-2">
+                            Students have already started this exam, so its questions are locked. You can still change the title, time limit, description, policy and groups. Duplicate the exam to change the questions.
+                        </div>
+                    )}
+
+                    <div className={`space-y-3 ${questionsLocked ? 'opacity-60 pointer-events-none' : ''}`}>
                         {questions.map((q, i) => (
                             <div key={i} className="glass p-4 space-y-2">
                                 <div className="flex items-center gap-2 flex-wrap">
@@ -443,14 +483,14 @@ export default function InstructorDashboard() {
                         ))}
                     </div>
 
-                    <div className="flex gap-2 flex-wrap">
+                    <div className={`flex gap-2 flex-wrap ${questionsLocked ? 'hidden' : ''}`}>
                         <button onClick={() => addQuestion('mcq')} className="btn-light px-3 py-1.5 text-xs border-ink-2/25">+ MCQ</button>
                         <button onClick={() => addQuestion('essay')} className="btn-light px-3 py-1.5 text-xs border-warm/50 text-warm-ink">+ Essay</button>
                         <button onClick={() => addQuestion('practical')} className="btn-light px-3 py-1.5 text-xs border-danger/30 text-danger">+ Practical</button>
                     </div>
 
                     <button onClick={createExam} disabled={saving} className="btn-primary px-5 py-2 text-sm">
-                        {saving ? 'Creating…' : 'Create Exam'}
+                        {saving ? 'Saving…' : editingId ? 'Save changes' : 'Create Exam'}
                     </button>
                 </div>
             )}
@@ -475,6 +515,7 @@ export default function InstructorDashboard() {
                                 {exam.time_limit_minutes ? `${exam.time_limit_minutes} min · ` : ''}{exam.description || ''}
                             </p>
                             <div className="flex gap-2 mt-1.5 flex-wrap">
+                                <span className="chip bg-surface text-ink border border-line font-bold" title="Use this number as exam_id in Moodle">Exam #{exam.id}</span>
                                 <span className={`chip ${exam.status === 'published' ? 'bg-ok/10 text-ok border border-ok/30' : 'bg-surface text-muted border border-line'}`}>
                                     {exam.status}
                                 </span>
@@ -495,6 +536,7 @@ export default function InstructorDashboard() {
                             <Link to={`/instructor/exams/${exam.id}/gradebook`} className="btn-light px-3 py-1.5 text-xs">Gradebook</Link>
                             <Link to={`/instructor/exams/${exam.id}/live`} className="btn-light px-3 py-1.5 text-xs border-ok/30 text-ok">Live</Link>
                             <button onClick={() => void openAccommodations(exam)} className="btn-light px-3 py-1.5 text-xs border-ink-2/25">Accommodations</button>
+                            <button onClick={() => void startEdit(exam)} className="btn-light px-3 py-1.5 text-xs">Edit</button>
                             <button onClick={() => void duplicateExam(exam)} className="btn-light px-3 py-1.5 text-xs">Duplicate</button>
                             <button onClick={() => toggleRelease(exam)} className="btn-light px-3 py-1.5 text-xs border-warm/50 text-warm-ink">
                                 {exam.grades_released ? 'Hide grades' : 'Release grades'}
