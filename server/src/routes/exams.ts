@@ -143,6 +143,66 @@ router.post('/', authenticate, async (req: any, res: Response) => {
     }
 });
 
+router.put('/:id', authenticate, async (req: any, res: Response) => {
+    if (req.user.role !== 'instructor') return res.status(403).json({ error: 'Unauthorized' });
+    const { title, description, timeLimitMinutes, startsAt, endsAt, proctoringPolicy, groupIds, questions } = req.body;
+    if (!title || !String(title).trim()) return res.status(400).json({ error: 'A title is required' });
+    if (questions !== undefined && (!Array.isArray(questions) || questions.length === 0)) {
+        return res.status(400).json({ error: 'At least one question is required' });
+    }
+
+    const client = await pool.connect();
+    try {
+        const owner = await client.query('SELECT 1 FROM exams WHERE id=$1 AND instructor_id=$2', [req.params.id, req.user.userId]);
+        if (!owner.rows.length) return res.status(403).json({ error: 'Not your exam' });
+
+        const attempts = await client.query('SELECT COUNT(*)::int AS n FROM exam_attempts WHERE exam_id=$1', [req.params.id]);
+        if (questions !== undefined && attempts.rows[0].n > 0) {
+            return res.status(409).json({ error: 'Students have already started this exam, so its questions cannot be changed. Duplicate the exam to change the questions.' });
+        }
+
+        await client.query('BEGIN');
+        await client.query(
+            `UPDATE exams SET title=$1, description=$2, time_limit_minutes=$3, starts_at=$4, ends_at=$5, proctoring_policy=$6 WHERE id=$7`,
+            [String(title).trim(), description || null, timeLimitMinutes || 60, startsAt || null, endsAt || null,
+             proctoringPolicy === 'flag_only' ? 'flag_only' : 'auto_submit', req.params.id]
+        );
+
+        if (questions !== undefined) {
+            await client.query('DELETE FROM questions WHERE exam_id=$1', [req.params.id]);
+            for (let i = 0; i < questions.length; i++) {
+                const q = questions[i];
+                await client.query(
+                    'INSERT INTO questions (exam_id, type, prompt, points, order_index, options, correct_answer) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+                    [req.params.id, q.type, q.prompt, q.points || 1, i + 1,
+                     q.options ? JSON.stringify(q.options) : null,
+                     q.correctAnswer ? JSON.stringify(q.correctAnswer) : null]
+                );
+            }
+        }
+
+        if (Array.isArray(groupIds)) {
+            await client.query('DELETE FROM exam_assignments WHERE exam_id=$1', [req.params.id]);
+            if (groupIds.length) {
+                await client.query(
+                    `INSERT INTO exam_assignments (exam_id, group_id)
+                     SELECT $1, g.id FROM student_groups g WHERE g.id = ANY($2::int[])`,
+                    [req.params.id, groupIds.map(Number)]
+                );
+            }
+        }
+
+        await client.query('COMMIT');
+        res.json({ examId: Number(req.params.id) });
+    } catch (error) {
+        await client.query('ROLLBACK').catch(() => {});
+        console.error(error);
+        res.status(500).json({ error: 'Exam update failed' });
+    } finally {
+        client.release();
+    }
+});
+
 router.post('/:id/duplicate', authenticate, async (req: any, res: Response) => {
     if (req.user.role !== 'instructor') return res.status(403).json({ error: 'Unauthorized' });
     const client = await pool.connect();
