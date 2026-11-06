@@ -70,6 +70,12 @@ router.get('/:id/questions', authenticate, async (req: any, res: Response) => {
         }
         const published = await pool.query('SELECT 1 FROM exams WHERE id=$1 AND published=TRUE', [req.params.id]);
         if (!published.rows.length) return res.status(403).json({ error: 'Exam not available' });
+        // Students only get the questions once they have started (or finished) an attempt, never before.
+        if (req.user.role !== 'admin') {
+            const started = req.user.role === 'student' &&
+                (await pool.query('SELECT 1 FROM exam_attempts WHERE exam_id=$1 AND student_id=$2', [req.params.id, req.user.userId])).rows.length > 0;
+            if (!started) return res.status(403).json({ error: 'Start the exam to see its questions' });
+        }
         const result = await pool.query(
             'SELECT id, type, prompt, points, order_index, options FROM questions WHERE exam_id = $1 ORDER BY order_index',
             [req.params.id]
@@ -82,6 +88,8 @@ router.get('/:id/questions', authenticate, async (req: any, res: Response) => {
 
 router.get('/:id/assignments', authenticate, async (req: any, res: Response) => {
     try {
+        const own = await pool.query('SELECT 1 FROM exams WHERE id=$1 AND instructor_id=$2', [req.params.id, req.user.userId]);
+        if (req.user.role !== 'instructor' || !own.rows.length) return res.status(403).json({ error: 'Not your exam' });
         const result = await pool.query(
             'SELECT group_id FROM exam_assignments WHERE exam_id = $1',
             [req.params.id]

@@ -1,4 +1,5 @@
-﻿import { Router, Request, Response } from 'express';
+import crypto from 'crypto';
+import { Router, Request, Response } from 'express';
 import { pool } from '../../db';
 
 import { authenticate } from '../../middleware/auth';
@@ -63,6 +64,8 @@ const MAX_EVIDENCE_BYTES = 1_500_000;
 // Short audio clip saved with a voice flag (about 6 s of low-bitrate audio, so a few tens of KB).
 const AUDIO_DATA_URL = /^data:audio\/(webm|mp4|ogg|mpeg|wav)(?:;codecs=[A-Za-z0-9.,=-]+)?;base64,([A-Za-z0-9+/=]+)$/;
 const MAX_AUDIO_BYTES = 600_000;
+const MAX_EVIDENCE_PER_ATTEMPT = 40;
+const MAX_CLIPS_PER_ATTEMPT = 20;
 const AUDIO_EXT: Record<string, string> = { webm: 'webm', mp4: 'm4a', ogg: 'ogg', mpeg: 'mp3', wav: 'wav' };
 
 router.post('/:attemptId/event', authenticate, async (req: any, res: Response) => {
@@ -73,19 +76,29 @@ router.post('/:attemptId/event', authenticate, async (req: any, res: Response) =
     }
 
     try {
-        const owned = await pool.query('SELECT 1 FROM exam_attempts WHERE id = $1 AND student_id = $2', [req.params.attemptId, req.user.userId]);
+        const owned = await pool.query('SELECT status FROM exam_attempts WHERE id = $1 AND student_id = $2', [req.params.attemptId, req.user.userId]);
         if (!owned.rows.length) return res.status(403).json({ error: 'Not your attempt' });
+        if (owned.rows[0].status !== 'in_progress') return res.status(409).json({ error: 'Attempt is not in progress' });
+
+        // Per-attempt caps on stored files so a misbehaving client cannot fill the disk. Events are still logged past the cap.
+        const stored = await pool.query(
+            `SELECT (SELECT COUNT(*)::int FROM webcam_snapshots WHERE attempt_id = $1 AND image_url LIKE '/uploads/evidence_%') AS images,
+                    (SELECT COUNT(*)::int FROM integrity_events WHERE attempt_id = $1 AND metadata->>'audioUrl' IS NOT NULL) AS clips`,
+            [req.params.attemptId]
+        );
+        const imagesFull = stored.rows[0].images >= MAX_EVIDENCE_PER_ATTEMPT;
+        const clipsFull = stored.rows[0].clips >= MAX_CLIPS_PER_ATTEMPT;
 
         // Optional evidence frame captured by the browser at the moment of the flag.
         // Saved as a snapshot and linked to this event so the instructor sees *why* it was flagged.
         const meta: Record<string, unknown> = metadata && typeof metadata === 'object' ? { ...metadata } : {};
-        const evidence = typeof evidenceBase64 === 'string' ? EVIDENCE_DATA_URL.exec(evidenceBase64) : null;
+        const evidence = !imagesFull && typeof evidenceBase64 === 'string' ? EVIDENCE_DATA_URL.exec(evidenceBase64) : null;
         if (evidence) {
             const buffer = Buffer.from(evidence[1], 'base64');
             if (buffer.length <= MAX_EVIDENCE_BYTES) {
                 try {
                     await fs.promises.mkdir(UPLOADS_DIR, { recursive: true });
-                    const filename = `evidence_${Number(req.params.attemptId)}_${eventType}_${Date.now()}.jpg`;
+                    const filename = `evidence_${Number(req.params.attemptId)}_${eventType}_${crypto.randomBytes(12).toString('hex')}.jpg`;
                     await fs.promises.writeFile(path.join(UPLOADS_DIR, filename), buffer);
                     meta.evidenceUrl = `/uploads/${filename}`;
                     await pool.query('INSERT INTO webcam_snapshots (attempt_id, image_url) VALUES ($1, $2)', [req.params.attemptId, meta.evidenceUrl]);
@@ -96,13 +109,13 @@ router.post('/:attemptId/event', authenticate, async (req: any, res: Response) =
         }
 
         // Optional short audio clip, only accepted with a voice flag. Stored beside the evidence frame.
-        const audio = eventType === 'voice_detected' && typeof audioBase64 === 'string' ? AUDIO_DATA_URL.exec(audioBase64) : null;
+        const audio = !clipsFull && eventType === 'voice_detected' && typeof audioBase64 === 'string' ? AUDIO_DATA_URL.exec(audioBase64) : null;
         if (audio) {
             const buffer = Buffer.from(audio[2], 'base64');
             if (buffer.length > 0 && buffer.length <= MAX_AUDIO_BYTES) {
                 try {
                     await fs.promises.mkdir(UPLOADS_DIR, { recursive: true });
-                    const filename = `voiceclip_${Number(req.params.attemptId)}_${Date.now()}.${AUDIO_EXT[audio[1]]}`;
+                    const filename = `voiceclip_${Number(req.params.attemptId)}_${crypto.randomBytes(12).toString('hex')}.${AUDIO_EXT[audio[1]]}`;
                     await fs.promises.writeFile(path.join(UPLOADS_DIR, filename), buffer);
                     meta.audioUrl = `/uploads/${filename}`;
                 } catch (e) {

@@ -270,6 +270,7 @@ export default function InstructorDashboard() {
     };
 
     const openAccommodations = async (e: Exam) => {
+        loadStudents();
         setAccForExam(e);
         setAccStudentId(null); setAccExtra('0'); setAccStart(''); setAccEnd('');
         try {
@@ -337,7 +338,7 @@ export default function InstructorDashboard() {
                 <h1 className="text-[2rem] font-extrabold tracking-tight text-on-canvas">Instructor Dashboard</h1>
                 <div className="flex gap-2 flex-wrap">
                     <Link to="/instructor/violations" className="btn-soft px-4 py-2 text-sm">Violation Tracker</Link>
-                    <button onClick={() => setShowGroups(v => !v)} className="btn-soft px-4 py-2 text-sm">{showGroups ? 'Done' : 'Manage groups'}</button>
+                    <button onClick={() => { if (!showGroups) loadStudents(); setShowGroups(v => !v); }} className="btn-soft px-4 py-2 text-sm">{showGroups ? 'Done' : 'Manage groups'}</button>
                     <button
                         onClick={() => (showForm ? cancelForm() : setShowForm(true))}
                         className={showForm ? 'btn-soft px-4 py-2 text-sm' : 'btn-primary px-4 py-2 text-sm'}

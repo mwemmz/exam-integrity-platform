@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { Router } from 'express';
 import { pool } from '../../db';
 import { authenticate } from '../../middleware/auth';
@@ -41,7 +42,7 @@ router.post('/:attemptId/snapshot', authenticate, async (req: any, res) => {
         }
 
         await fs.promises.mkdir(UPLOADS_DIR, { recursive: true });
-        const filename = `snapshot_${attemptId}_${Date.now()}.jpg`;
+        const filename = `snapshot_${attemptId}_${crypto.randomBytes(12).toString('hex')}.jpg`;
         await fs.promises.writeFile(path.join(UPLOADS_DIR, filename), buffer);
 
         await pool.query('INSERT INTO webcam_snapshots (attempt_id, image_url) VALUES ($1, $2)', [attemptId, `/uploads/${filename}`]);

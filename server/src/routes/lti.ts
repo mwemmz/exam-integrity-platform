@@ -70,7 +70,7 @@ router.post('/launch', async (req: Request, res: Response) => {
             );
         }
 
-        const token = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET, { expiresIn: '1h' });
+        const token = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET, { expiresIn: '12h' });
         const target = examId && user.role === 'student' ? `/exam/${examId}/consent` : '';
         // Token travels in the URL fragment so it is never sent to a server or logged.
         res.redirect(303, `${CLIENT_URL}/lti#token=${encodeURIComponent(token)}&to=${encodeURIComponent(target)}`);

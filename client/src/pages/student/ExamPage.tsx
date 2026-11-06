@@ -72,7 +72,7 @@ export default function ExamPage() {
     }, []);
 
     const logEvent = useCallback(async (eventType: string, metadata?: Record<string, unknown>, evidenceBase64?: string, audioBase64?: string) => {
-        if (phaseRef.current !== 'active') return;
+        if (phaseRef.current !== 'active' || submittedRef.current) return;
         const post = (type: string, meta?: Record<string, unknown>) =>
             api<{ autoSubmitted: boolean; rule?: string }>(
                 `/api/integrity/${attemptId}/event`,
@@ -98,6 +98,8 @@ export default function ExamPage() {
                     return;
                 }
                 if (err instanceof ApiError && (err.status === 401 || err.status === 403)) return;
+                // 409: the attempt is no longer in progress (already submitted or auto-submitted), so there is nothing to retry.
+                if (err instanceof ApiError && err.status === 409) return;
             }
         }
         setUnsavedFlags(n => n + 1);

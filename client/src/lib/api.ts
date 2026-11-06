@@ -51,7 +51,7 @@ export class ApiError extends Error {
 }
 
 // Fired when a request fails because the session token itself is missing or invalid
-// (expired after its 1-hour lifetime, tampered, or signed before a server restart) —
+// (expired after its 12-hour lifetime, tampered, or signed before a server restart) —
 // as opposed to an ordinary 401/403 an endpoint raises for its own reasons (wrong
 // password, "not your exam", wrong role). The auth middleware is the only thing that
 // replies with a `message` field; every application-level check below it replies with

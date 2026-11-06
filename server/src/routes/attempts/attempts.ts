@@ -38,6 +38,13 @@ router.post('/:examId/start', authenticate, async (req: any, res: Response) => {
         const limitMinutes = (selected.time_limit_minutes || 0) + (Number(accommodation.extra_time_minutes) || 0);
         const endFromLimit = new Date(Date.now() + limitMinutes * 60000);
         const customEnd = accommodation.custom_end_at ? new Date(accommodation.custom_end_at) : null;
+        const nowMs = Date.now();
+        if (!accommodation.custom_start_at && selected.starts_at && new Date(selected.starts_at).getTime() > nowMs) {
+            return res.status(409).json({ error: 'This exam has not opened yet' });
+        }
+        if (!accommodation.custom_end_at && selected.ends_at && new Date(selected.ends_at).getTime() <= nowMs) {
+            return res.status(409).json({ error: 'This exam has closed' });
+        }
         const startWindowOpen = !accommodation.custom_start_at || new Date(accommodation.custom_start_at) <= new Date();
         const endTime = customEnd && customEnd < endFromLimit ? customEnd : endFromLimit;
 
@@ -87,8 +94,16 @@ router.post('/:attemptId/answer', authenticate, async (req: any, res: Response) 
     if (!questionId) return res.status(400).json({ error: 'questionId required' });
 
     try {
-        const attempt = await pool.query('SELECT status FROM exam_attempts WHERE id = $1 AND student_id = $2', [req.params.attemptId, req.user.userId]);
+        const attempt = await pool.query('SELECT status, end_time, exam_id FROM exam_attempts WHERE id = $1 AND student_id = $2', [req.params.attemptId, req.user.userId]);
         if (!attempt.rows.length) return res.status(403).json({ error: 'Not your attempt' });
+        // One minute of grace so the answers saved right as the timer hits zero still land.
+        if (attempt.rows[0].status === 'in_progress' && attempt.rows[0].end_time && Date.now() > new Date(attempt.rows[0].end_time).getTime() + 60000) {
+            return res.status(409).json({ error: 'Time is up' });
+        }
+        if (attempt.rows[0].status === 'in_progress') {
+            const own = await pool.query('SELECT 1 FROM questions WHERE id = $1 AND exam_id = $2', [questionId, attempt.rows[0].exam_id]);
+            if (!own.rows.length) return res.status(400).json({ error: 'Question does not belong to this exam' });
+        }
         if (attempt.rows[0].status !== 'in_progress') {
             return res.status(409).json({ error: 'Attempt is locked' });
         }
