@@ -17,7 +17,15 @@ router.post('/:examId/start', authenticate, async (req: any, res: Response) => {
             return res.json({ attemptId: existing.rows[0].id, endTime: existing.rows[0].end_time, resumed: true });
         }
 
-        const exam = await pool.query('SELECT * FROM exams WHERE id = $1 AND published = TRUE', [req.params.examId]);
+        // Same visibility rule as the exam list: published, and either open to everyone or assigned to one of the student's groups.
+        const exam = await pool.query(
+            `SELECT e.* FROM exams e WHERE e.id = $1 AND e.published = TRUE AND
+               (NOT EXISTS (SELECT 1 FROM exam_assignments WHERE exam_id = e.id)
+                OR EXISTS (SELECT 1 FROM exam_assignments xa
+                           JOIN student_group_members m ON m.group_id = xa.group_id
+                           WHERE xa.exam_id = e.id AND m.student_id = $2))`,
+            [req.params.examId, req.user.userId]
+        );
         if (!exam.rows.length) return res.status(403).json({ error: 'Exam not available' });
         const selected = exam.rows[0];
 
@@ -64,6 +72,10 @@ router.get('/:attemptId/status', authenticate, async (req: any, res: Response) =
             [req.params.attemptId]
         );
         if (!result.rows.length) return res.status(404).json({ error: 'Attempt not found' });
+        if (req.user.role === 'student') {
+            const own = await pool.query('SELECT 1 FROM exam_attempts WHERE id = $1 AND student_id = $2', [req.params.attemptId, req.user.userId]);
+            if (!own.rows.length) return res.status(403).json({ error: 'Not your attempt' });
+        }
         res.json(result.rows[0]);
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch status' });
@@ -75,8 +87,9 @@ router.post('/:attemptId/answer', authenticate, async (req: any, res: Response) 
     if (!questionId) return res.status(400).json({ error: 'questionId required' });
 
     try {
-        const attempt = await pool.query('SELECT status FROM exam_attempts WHERE id = $1', [req.params.attemptId]);
-        if (!attempt.rows.length || attempt.rows[0].status !== 'in_progress') {
+        const attempt = await pool.query('SELECT status FROM exam_attempts WHERE id = $1 AND student_id = $2', [req.params.attemptId, req.user.userId]);
+        if (!attempt.rows.length) return res.status(403).json({ error: 'Not your attempt' });
+        if (attempt.rows[0].status !== 'in_progress') {
             return res.status(409).json({ error: 'Attempt is locked' });
         }
 
@@ -172,7 +185,7 @@ router.get('/:attemptId/result', authenticate, async (req: any, res: Response) =
         const row = attempt.rows[0];
 
         const isInstructorOrAdmin = req.user.role === 'instructor' || req.user.role === 'admin';
-        if (!isInstructorOrAdmin && !row.grades_released && req.user.userId !== row.student_id) {
+        if (!isInstructorOrAdmin && req.user.userId !== row.student_id) {
             return res.status(403).json({ released: false });
         }
         if (!isInstructorOrAdmin && !row.grades_released) {

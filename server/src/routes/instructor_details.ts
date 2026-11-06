@@ -12,8 +12,8 @@ router.get('/exams/:examId/attempts/:attemptId', authenticate, async (req: any, 
         const attempt = await pool.query(
             `SELECT a.*, u.name AS student_name, e.title AS exam_title
              FROM exam_attempts a JOIN users u ON a.student_id = u.id JOIN exams e ON a.exam_id = e.id
-             WHERE a.id = $1`,
-            [req.params.attemptId]
+             WHERE a.id = $1 AND a.exam_id = $2 AND e.instructor_id = $3`,
+            [req.params.attemptId, req.params.examId, req.user.userId]
         );
         if (!attempt.rows.length) return res.status(404).json({ error: 'Attempt not found' });
 
