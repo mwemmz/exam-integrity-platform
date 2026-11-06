@@ -372,7 +372,7 @@ router.post('/exams/:examId/message', authenticate, async (req: any, res: Respon
     const { studentId, message } = req.body;
     if (!message || !message.trim()) return res.status(400).json({ error: 'Message required' });
     try {
-        await ownExam(req, res);
+        if (!(await ownExam(req, res))) return;
         const result = await pool.query(
             'INSERT INTO exam_messages (exam_id, instructor_id, student_id, message) VALUES ($1, $2, $3, $4) RETURNING id, sent_at',
             [req.params.examId, req.user.userId, studentId || null, message.trim()]
@@ -662,6 +662,10 @@ router.post('/attempts/:attemptId/grade', authenticate, async (req: any, res: Re
     if (!questionId) return res.status(400).json({ error: 'questionId required' });
 
     try {
+        const owned = await ownAttempt(req, res);
+        if (!owned) return;
+        const inExam = await pool.query('SELECT 1 FROM questions WHERE id = $1 AND exam_id = $2', [questionId, owned.examId]);
+        if (!inExam.rows.length) return res.status(400).json({ error: 'Question does not belong to this exam' });
         const existing = await pool.query(
             'SELECT id FROM answers WHERE attempt_id = $1 AND question_id = $2',
             [req.params.attemptId, questionId]
@@ -695,6 +699,7 @@ router.post('/exams/:examId/release', authenticate, async (req: any, res: Respon
     if (!isInstructor(req, res)) return;
     const { gradesReleased } = req.body;
     try {
+        if (!(await ownExam(req, res))) return;
         await pool.query(
             'UPDATE exams SET grades_released = $1 WHERE id = $2 AND instructor_id = $3',
             [!!gradesReleased, req.params.examId, req.user.userId]
