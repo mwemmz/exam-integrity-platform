@@ -71,7 +71,7 @@ export default function ConsentPage() {
                         <label htmlFor="webcam-consent" className="inline-flex items-start gap-2 cursor-pointer mt-1">
                             <input id="webcam-consent" name="webcamConsent" type="checkbox" checked={!!webcamOk} onChange={e => setWebcamOk(e.target.checked)} className="mt-0.5 accent-accent" />
                             <span>
-                                <strong className="text-ink">Periodic webcam snapshots + face monitoring (optional):</strong> allow camera access and a still photo will be taken every 30 seconds. An on-device AI detector also checks that your face stays in frame and looks toward the screen (you will be asked to follow a dot with your eyes for about 15 seconds first, which you can skip), and that no other person or phone appears in view. Your instructor can review all of this afterwards.
+                                <strong className="text-ink">Periodic webcam snapshots + face monitoring (optional):</strong> allow camera access and a still photo will be taken every 30 seconds. An on-device AI detector also checks that your face stays in frame and looks toward the screen, and that no other person or phone appears in view. Your instructor can review all of this afterwards.
                                 {webcamOk === false && <span className="block text-xs text-warm-ink mt-0.5">Camera was not granted — you can continue without snapshots.</span>}
                             </span>
                         </label>
