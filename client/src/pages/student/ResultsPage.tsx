@@ -31,7 +31,7 @@ export default function ResultsPage() {
             .catch(err => setError(err instanceof Error ? err.message : 'Failed to load results'));
     }, [attemptId]);
 
-    if (error) {
+    if (error || (data && !data.gradesReleased)) {
         return (
             <div className="p-8 max-w-xl mx-auto text-center">
                 <div className="glass-strong p-8">

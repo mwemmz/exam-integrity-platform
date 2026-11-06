@@ -14,6 +14,11 @@ function isInstructor(req: any, res: Response): boolean {
     return true;
 }
 
+// Institution match used by every instructor roster query. Self-registered accounts have no institution (the sign-up form
+// does not ask for one), and `NULL = NULL` is never true, so a plain `=` hid their groups and students. A missing
+// institution on either side now matches; two different institutions still never see each other.
+const sameInstitution = (a: string, b: string) => `(${a} IS NULL OR ${b} IS NULL OR ${a} = ${b})`;
+
 async function ownExam(req: any, res: Response): Promise<number | null> {
     const r = await pool.query('SELECT 1 FROM exams WHERE id=$1 AND instructor_id=$2', [req.params.examId, req.user.userId]);
     if (!r.rows.length) {
@@ -44,8 +49,7 @@ router.get('/students', authenticate, async (req: any, res: Response) => {
     try {
         const result = await pool.query(
             `SELECT u.id, u.name, u.email FROM users u
-             WHERE u.role = 'student' AND u.institution_id =
-                 (SELECT institution_id FROM users WHERE id = $1)
+             WHERE u.role = 'student' AND ${sameInstitution('u.institution_id', '(SELECT institution_id FROM users WHERE id = $1)')}
              ORDER BY u.name`,
             [req.user.userId]
         );
@@ -62,7 +66,7 @@ router.get('/groups', authenticate, async (req: any, res: Response) => {
             `SELECT g.id, g.name,
                     (SELECT COUNT(*) FROM student_group_members m WHERE m.group_id = g.id) AS member_count
              FROM student_groups g
-             WHERE g.institution_id = (SELECT institution_id FROM users WHERE id = $1)
+             WHERE ${sameInstitution('g.institution_id', '(SELECT institution_id FROM users WHERE id = $1)')}
              ORDER BY g.name`,
             [req.user.userId]
         );
@@ -134,7 +138,7 @@ router.get('/bank', authenticate, async (req: any, res: Response) => {
     try {
         let query = `SELECT qb.*, u.name AS instructor_name FROM question_bank qb
                      JOIN users u ON u.id = qb.instructor_id
-                     WHERE qb.institution_id = (SELECT institution_id FROM users WHERE id = $1)`;
+                     WHERE ${sameInstitution('qb.institution_id', '(SELECT institution_id FROM users WHERE id = $1)')}`;
         const params: any[] = [req.user.userId];
         if (type) {
             params.push(type);
@@ -350,12 +354,19 @@ router.get('/exams/:examId/live', authenticate, async (req: any, res: Response) 
                     (SELECT COUNT(*) FROM integrity_events ie WHERE ie.attempt_id = a.id) AS integrity_count
              FROM users u
              LEFT JOIN exam_attempts a ON a.exam_id = $1 AND a.student_id = u.id
-             WHERE u.role = 'student' AND u.institution_id = (SELECT institution_id FROM exams WHERE id = $1)
+             WHERE u.role = 'student' AND ${sameInstitution('u.institution_id', '(SELECT institution_id FROM exams WHERE id = $1)')}
              ORDER BY u.name`,
             [req.params.examId]
         );
+        // camelCase, same shape as the realtime `attempt_update` payload the page merges into these rows.
         const rows = result.rows.map((r: any) => ({
-            ...r,
+            studentId: r.student_id,
+            studentName: r.student_name,
+            studentEmail: r.student_email,
+            attemptId: r.attempt_id,
+            endTime: r.end_time,
+            flagged: !!r.flagged_for_review,
+            integrityCount: Number(r.integrity_count) || 0,
             status: r.status || 'not_started',
             remainingSeconds: r.status === 'in_progress' && r.end_time
                 ? Math.max(0, Math.round((new Date(r.end_time).getTime() - Date.now()) / 1000))
