@@ -35,7 +35,8 @@ app.get('/', (_req, res) => {
 app.use('/uploads', express.static(UPLOADS_DIR));
 app.use('/static', express.static(path.join(__dirname, '../static')));
 
-const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: true, legacyHeaders: false });
+// Only failed attempts count: a whole class often shares one campus IP, and successful logins must not lock them out.
+const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 50, skipSuccessfulRequests: true, standardHeaders: true, legacyHeaders: false });
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/exams', examRoutes);
 app.use('/api/attempts', attemptRoutes);
